@@ -1,0 +1,56 @@
+/* ─── TMS project tokens ──────────────────────────────────────────
+   Only values that Sophi's Pet 3 (sophis-pet.css, --sp-*) does not define.
+   SP3 now covers what SP2 needed overrides for: Font Size/M 13px (--sp-font-size-m),
+   icon #688b99 (--sp-icon), header / item height 52px (--sp-space-13x).
+   ──────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Raw paddings used by SP3 components that are not variables in the library */
+  --tms-space-2px: 2px;   /* Badge padding-block */
+  --tms-space-5px: 5px;
+  --tms-space-6px: 6px;   /* Badge padding-inline, Tab Item padding-block */
+  --tms-space-sm: 14px;   /* Foundation file "Spacing & Size/SM" */
+
+  /* Header search field on header-background (SP3 "Header Search" not mapped yet) */
+  --tms-header-input-background: var(--sp-brand-fill-dark);
+
+  /* SP3 "Header Button" State=active = palette brand/80 (not a Theme variable; same value as text-link) */
+  --tms-header-active: var(--sp-text-link);
+
+  /* Raw values in the Foundation frame (not tokens in Figma yet) */
+  --tms-help-background: var(--sp-warning-fill-light); /* "Hilfe" sidebar item */
+  --tms-promo: var(--sp-warning-fill-normal);          /* "Jetzt kaufen" / "Hilfe" orange */
+
+  /* Layout */
+  --tms-header-height: var(--sp-space-13x);
+  --tms-sidebar-width: 270px;   /* SP3 "Side Menu" width */
+
+  /* Min / max sizes of the "submarine" (New task) components — also the Figma auto-layout min/max constraints, see docs/submarine-sizing.md */
+  --tms-modal-min-width: 360px;
+  --tms-modal-max-width: 672px;        /* New task */
+  --tms-dialog-max-width: 680px;       /* Set date and time */
+  --tms-confirm-min-width: 320px;
+  --tms-confirm-max-width: 440px;      /* Discard confirmation */
+  --tms-field-min-width: 120px;
+  --tms-textarea-min-height: 64px;     /* 3 rows */
+  --tms-textarea-max-height: 200px;
+  --tms-recipient-min-width: 240px;
+  --tms-recipient-max-height: 96px;    /* chips wrap, then scroll */
+  --tms-recipient-popover-min-width: 320px;
+  --tms-recipient-popover-list-max-height: 240px;
+  --tms-menu-min-width: 176px;
+  --tms-menu-max-width: 280px;
+  --tms-menu-max-height: 240px;
+  --tms-calendar-popover-width: 280px;
+  --tms-time-min-width: 120px;
+  --tms-time-max-width: 224px;
+  --tms-toast-min-width: 280px;
+  --tms-toast-max-width: 480px;
+}
+
+@theme inline {
+  --color-tms-help-background: var(--tms-help-background);
+  --color-tms-promo: var(--tms-promo);
+  --color-tms-header-input-background: var(--tms-header-input-background);
+  --color-tms-header-active: var(--tms-header-active);
+}
