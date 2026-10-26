@@ -72,8 +72,10 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
       >
       <TabBar label="Aufgabe" value={tab} onChange={setTab} tabs={[{ id: "details", label: "Details" }, { id: "history", label: "Verlauf", count: history.length }]} />
 
-      {tab === "details" && (
-        <div className="flex flex-col gap-[var(--sp-space-5x)] pb-[var(--sp-space-2x)]">
+      {/* both tabs share one grid cell, so the dialog keeps the height of the taller one when switching */}
+      <div className="grid">
+      {(
+        <div aria-hidden={tab !== "details"} {...(tab !== "details" ? ({ inert: "" } as object) : {})} className={`col-start-1 row-start-1 flex flex-col gap-[var(--sp-space-5x)] pb-[var(--sp-space-2x)] ${tab === "details" ? "" : "invisible"}`}>
           <dl className="m-0 flex flex-col gap-[var(--sp-space-2x)]">
             {task.receiver && task.receiver.kind !== "person" ? (
               <>
@@ -169,11 +171,10 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
         </div>
       )}
 
-      {tab === "history" && (
-        <div className="pb-[var(--sp-space-2x)]">
-          <HistoryTimeline entries={history} />
-        </div>
-      )}
+      <div aria-hidden={tab !== "history"} {...(tab !== "history" ? ({ inert: "" } as object) : {})} className={`col-start-1 row-start-1 pb-[var(--sp-space-2x)] ${tab === "history" ? "" : "invisible"}`}>
+        <HistoryTimeline entries={history} />
+      </div>
+      </div>
       </Modal>
       {viewer && <FilePreview files={viewer.files} start={viewer.start} onClose={() => setViewer(null)} />}
     </>
