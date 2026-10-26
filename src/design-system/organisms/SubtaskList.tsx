@@ -24,13 +24,14 @@ export interface SubtaskListProps {
 }
 
 const ACTION: Record<"check" | "photo" | "attachment", { icon: IconName; open: string; noun: string; hint?: string }> = {
-  check: { icon: "check_circle", open: "Als erledigt markieren", noun: "" },
+  check: { icon: "check", open: "Als erledigt markieren", noun: "" },
   photo: { icon: "camera", open: "Foto hinzufügen", noun: "Fotos", hint: "Nur Bilder, mehrere möglich" },
   attachment: { icon: "attachment", open: "Datei hinzufügen", noun: "Dateien", hint: "Mehrere möglich" },
 };
 
-/** Icon-sized action button with an SP3 Tooltip (fixed, so scrolling containers never clip it). */
-function IconAction({ label, icon, color, onClick, disabled }: { label: string; icon: IconName; color: string; onClick: () => void; disabled?: boolean }) {
+/** Solution-type button in a 24px frame with an SP3 Tooltip (fixed, so scrolling containers never clip it):
+    open = grey frame + grey icon, done = green (success fill) with a white icon. */
+function IconAction({ label, icon, done, onClick, disabled }: { label: string; icon: IconName; done?: boolean; onClick: () => void; disabled?: boolean }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const show = (el: HTMLElement) => { const r = el.getBoundingClientRect(); setPos({ x: r.left + r.width / 2, y: r.top }); };
   return (
@@ -43,9 +44,9 @@ function IconAction({ label, icon, color, onClick, disabled }: { label: string; 
       onMouseLeave={() => setPos(null)}
       onFocus={(e) => show(e.currentTarget)}
       onBlur={() => setPos(null)}
-      className={`relative flex items-center justify-center shrink-0 size-8 p-0 border-0 bg-transparent rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
+      className={`relative flex items-center justify-center shrink-0 size-6 p-0 border border-solid rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${done ? "bg-sp-success-fill-normal border-sp-success-fill-normal" : "bg-sp-neutral-fill-light border-sp-neutral-border-light"} ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
     >
-      <Icon name={icon} size={20} color={color} />
+      <Icon name={icon} size={12} color={done ? "var(--sp-success-on-normal)" : "var(--sp-icon)"} />
       {pos && (
         <span className="fixed z-[80] -translate-x-1/2 -translate-y-full" style={{ left: pos.x, top: pos.y - 4 }}>
           <Tooltip>{label}</Tooltip>
@@ -131,8 +132,8 @@ export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFi
                 {isDone ? (
                   <IconAction
                     label={kind === "check" ? "Erledigt – klicken zum Wiederöffnen" : `Erledigt · ${a.noun}`}
-                    icon={kind === "check" ? "check_circle_filled" : a.icon}
-                    color="var(--sp-success-on-surface)"
+                    icon={kind === "check" ? "check" : a.icon}
+                    done
                     disabled={kind !== "check"}
                     onClick={() => onToggle(s.id)}
                   />
@@ -140,7 +141,6 @@ export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFi
                   <IconAction
                     label={a.open}
                     icon={a.icon}
-                    color={kind === "check" ? "var(--sp-icon)" : "var(--sp-brand-on-surface)"}
                     onClick={() => (kind === "check" ? onToggle(s.id) : setOpenId(open ? null : s.id))}
                   />
                 )}

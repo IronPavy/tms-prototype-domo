@@ -1,0 +1,49 @@
+// static mockup (SP3 look): subtask rows with a framed solution-type button — grey when open, green + white icon when done
+const fs = require("fs");
+const path = require("path");
+
+const css = `
+*{box-sizing:border-box} body{margin:0;background:#E2E9EC;font-family:Roboto,Segoe UI,Arial,sans-serif;color:#04161C;font-size:14px}
+.stage{width:760px;padding:32px;display:flex;flex-direction:column;gap:14px}
+.cap{font-size:12px;color:#33464C}
+.card{background:#fff;border:1px solid #D0D9DE;border-radius:4px}
+.row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 8px 8px 12px;border-top:1px solid #E2E9EC}
+.row:first-child{border-top:0}
+.num{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;background:#E2E9EC;border:1px solid #C5D4D9}
+.num.d{background:#DDF1E6;border-color:#9AD4B3}
+.t{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.t .x{text-decoration:line-through;color:#33464C}
+.chip{height:24px;padding:0 8px 0 4px;border-radius:4px;background:#E2E9EC;border:1px solid #C5D4D9;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;max-width:200px}
+.btn{width:28px;height:28px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center}
+.btn.o{border:1.5px solid #AEC2C9;background:#F2F6F7;color:#688B99}
+.btn.d{border:1.5px solid #2E9E6B;background:#2E9E6B;color:#fff}
+.btn svg{width:18px;height:18px}
+.h{font-weight:500;margin:0 0 8px}
+.legend{display:flex;gap:18px;align-items:center;font-size:12px;color:#33464C}
+.legend span{display:flex;gap:6px;align-items:center}
+`;
+const I = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.500l4.500 4.500L19 7.500"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg>',
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11l-7.500 7.500a4.500 4.500 0 0 1-6.400-6.400L13 4.200a3 3 0 0 1 4.300 4.300L9.400 16.400a1.500 1.500 0 0 1-2.100-2.100L14.500 7"/></svg>',
+  doc: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#688B99" stroke-width="1.300"><path d="M4 1.500h5.500L13 5v9.500H4z"/></svg>',
+};
+const row = (n, title, done, type, chips = []) => `<div class="row"><span class="num ${done ? "d" : ""}">${n}</span>
+<div class="t"><span class="${done ? "x" : ""}">${title}</span>${chips.length ? `<div style="display:flex;gap:6px">${chips.map((c) => `<span class="chip">${I.doc}${c}</span>`).join("")}</div>` : ""}</div>
+<span class="btn ${done ? "d" : "o"}">${I[type]}</span></div>`;
+
+const html = `<!doctype html><meta charset="utf-8"><style>${css}</style><div class="stage">
+<div class="cap">Unteraufgaben — Lösungsart im Rahmen: grau = offen, grün mit weißem Icon = erledigt</div>
+<div><p class="h">Unteraufgaben <span style="font-weight:400;color:#33464C;font-size:12px">2 von 5</span></p>
+<div class="card">
+${row(1, "Kassenstand zählen", true, "check")}
+${row(2, "Zwischenabschluss (Z-Bon) hochladen", true, "clip", ["Z-Bon_Tagesabschluss_26-1…"])}
+${row(3, "Zapfsäulen &amp; Tankplatz (Foto)", false, "cam")}
+${row(4, "Protokoll Tankstelle hochladen", false, "clip")}
+${row(5, "Schlüssel an Spätschicht übergeben", false, "check")}
+</div></div>
+<div class="legend"><span><span class="btn o" >${I.check}</span>offen</span><span><span class="btn d" >${I.check}</span>erledigt</span>
+<span>Typ bleibt am Icon erkennbar: Haken · Kamera · Büroklammer</span></div>
+</div>`;
+fs.writeFileSync(path.join(__dirname, "subtasks-frame.html"), html);
+console.log("ok");
