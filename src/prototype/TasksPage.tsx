@@ -110,16 +110,19 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
 
   return (
     <div ref={pageRef} className="flex flex-col gap-[var(--sp-space-6x)] p-[var(--sp-space-6x)]">
-      <PageHeader
-        title="Aufgaben"
-        primaryAction={<Button variant="primary" icon="plus" label="Neue Aufgabe" onClick={() => openNewTask()} />}
-        actions={
-          <>
-            <ScopeFilters />
-            <DateRangePicker value={range} onChange={setRange} today={TODAY} />
-          </>
-        }
-      />
+      {/* above the fixed toolbar, so the date picker panel is never covered while scrolling */}
+      <div className="relative z-30">
+        <PageHeader
+          title="Aufgaben"
+          primaryAction={<Button variant="primary" icon="plus" label="Neue Aufgabe" onClick={() => openNewTask()} />}
+          actions={
+            <>
+              <ScopeFilters />
+              <DateRangePicker value={range} onChange={setRange} today={TODAY} />
+            </>
+          }
+        />
+      </div>
 
       <div className="flex flex-col gap-[var(--sp-space-4x)]">
         <TabBar
