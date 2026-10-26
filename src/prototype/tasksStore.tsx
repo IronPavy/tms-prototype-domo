@@ -37,7 +37,7 @@ const seedDraft = (id: string, daysAgo: number, v: Partial<NewTaskValues>): Draf
   id, savedAt: stamp(new Date(startOfDay(addDays(TODAY, -daysAgo)).getTime() + (9 + daysAgo) * 3600e3 + 17 * 60e3)), values: { ...emptyTask(TODAY), ...v },
 });
 const SEED_DRAFTS: Draft[] = [
-  seedDraft("d1", 1, { title: "Notausgänge prüfen", recipients: ["team-house"], proof: "check", subtasks: ["Ausgang 1", "Ausgang 2"] }),
+  seedDraft("d1", 1, { title: "Notausgänge prüfen", recipients: ["p9", "p14", "p15"], proof: "check", subtasks: ["Ausgang 1", "Ausgang 2"] }),
   seedDraft("d2", 2, { title: "Allergene der Speisekarte prüfen", recipients: ["p1", "p4"], proof: "attachment", priority: true }),
   seedDraft("d3", 4, { title: "Terrasse grundreinigen", recipients: ["p6"], proof: "photo" }),
 ];

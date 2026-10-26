@@ -4,9 +4,9 @@ import { Checkbox } from "../atoms/Checkbox";
 import { Icon } from "../atoms/Icon";
 import { Popover } from "../molecules/Popover";
 import { SegmentedControl } from "../molecules/SegmentedControl";
-import { ShiftPill } from "../molecules/ShiftPill";
+import { ShiftPill, type ShiftColor } from "../molecules/ShiftPill";
 
-export interface TreeItem { key: string; label: string; /** shift: starting letters + working hours → pill */ shift?: { code: string; time: string } }
+export interface TreeItem { key: string; label: string; /** shift: starting letters + working hours → pill */ shift?: { code: string; time: string; color?: ShiftColor } }
 export interface TreeGroup { key: string; label: string; items: TreeItem[] }
 export interface TreeLocation { key: string; label: string; groups: TreeGroup[] }
 
@@ -77,7 +77,7 @@ function Tree({ tree, sel, onToggle }: { tree: TreeLocation[]; sel: Set<string>;
           >
             <Icon name={level === 0 ? "marker" : level === 1 ? "user_group" : shift ? "user_clock" : "user"} color="var(--sp-icon)" />
             <span className={`truncate ${level === 2 ? "sp-text-standard" : "sp-text-medium"} text-sp-text`}>{n.label}</span>
-            {shift && <ShiftPill code={shift.code} />}
+            {shift && <ShiftPill code={shift.code} color={shift.color} />}
             <span className="flex-1" />
             {shift && <span className="shrink-0 sp-text-small text-sp-text-label tabular-nums">{shift.time}</span>}
             {expandable && <Icon name="expanded" color="var(--sp-icon)" className={isOpen ? "rotate-180" : ""} />}

@@ -1,4 +1,3 @@
-import { Avatar } from "../atoms/Avatar";
 import { Icon, type IconName } from "../atoms/Icon";
 import { IconHint } from "./IconHint";
 import { PriorityIndicator } from "./PriorityIndicator";
@@ -21,13 +20,11 @@ export function Receiver({ task }: { task: TaskRowData }) {
     <span className="flex items-center gap-[var(--sp-space-2x)] min-w-0">
       {r && r.kind !== "person" ? (
         <span className="flex items-center justify-center shrink-0 size-8 rounded-[var(--sp-radius-2x)] bg-sp-neutral-fill-light"><Icon name={KIND_ICON[r.kind]} color="var(--sp-icon)" /></span>
-      ) : (
-        <Avatar name={task.person} />
-      )}
+      ) : null}
       <span className="flex flex-col gap-[var(--sp-space-1x)] min-w-0">
         <span className="flex items-center gap-[var(--sp-space-2x)] min-w-0">
           <TextHint text={task.person} max={34} className="sp-text-standard text-sp-text" />
-          {r?.kind === "shift" && r.code && <ShiftPill code={r.code} />}
+          {r?.kind === "shift" && r.code && <ShiftPill code={r.code} color={r.color} />}
           {r?.kind === "shift" && r.time && <span className="shrink-0 sp-text-small text-sp-text-label tabular-nums">{r.time}</span>}
         </span>
         <TextHint text={sub} className="sp-text-small text-sp-text-label" />

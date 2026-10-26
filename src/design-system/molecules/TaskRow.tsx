@@ -1,4 +1,3 @@
-import { Avatar } from "../atoms/Avatar";
 import { Icon, type IconName } from "../atoms/Icon";
 import { StatusChip } from "../atoms/StatusChip";
 import { DueDateChip } from "./DueDateChip";
@@ -8,6 +7,7 @@ import type { TaskAction } from "./TaskRowMenu";
 import { TextHint } from "./TextHint";
 import { IconHint } from "./IconHint";
 import type { Tone } from "../utils/tones";
+import type { ShiftColor } from "./ShiftPill";
 
 export type TaskStatus = "done" | "open" | "overdue";
 /** solution type — how the task is completed */
@@ -65,7 +65,7 @@ export interface TaskRowData {
   /** how often a template repeats */
   frequency?: "daily" | "weekly" | "monthly" | "yearly" | "once";
   /** who the task goes to: a person, a shift (name · group · location) or a whole group */
-  receiver?: { kind: "person" | "shift" | "team"; id: string; group: string; locationId: string; /** shift: starting letters + working hours */ code?: string; time?: string };
+  receiver?: { kind: "person" | "shift" | "team"; id: string; group: string; locationId: string; /** shift: starting letters + working hours */ code?: string; time?: string; color?: ShiftColor };
   /** files the employee attached (attachment / camera tasks) */
   files?: TaskFile[];
   status: TaskStatus;
@@ -87,7 +87,7 @@ export const SOLUTION: Record<TaskProof, { label: string; icon: IconName }> = {
 };
 
 /** grid shared by the rows (and any header) — task · assignee · due · subtasks · solution */
-export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_172px_56px_minmax(24px,120px)_1px_32px] items-center gap-x-[var(--sp-space-4x)]";
+export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_172px_56px_minmax(8px,32px)_1px_32px] items-center gap-x-[var(--sp-space-4x)]";
 
 export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
 
@@ -162,7 +162,6 @@ export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?
 
       {/* assignee */}
       <span className="flex items-center gap-[var(--sp-space-2x)] min-w-0">
-        <Avatar name={task.person} />
         <span className="flex flex-col gap-[var(--sp-space-1x)] min-w-0">
           <TextHint text={task.person} max={30} className="sp-text-standard text-sp-text" />
           <TextHint text={task.team} className="sp-text-small text-sp-text-label" />

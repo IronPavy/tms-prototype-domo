@@ -82,7 +82,7 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
                   <span className="flex items-center gap-[var(--sp-space-2x)]">
                     <span className="flex items-center justify-center shrink-0 size-6 rounded-[var(--sp-radius-2x)] bg-sp-neutral-fill-light"><Icon name={task.receiver.kind === "shift" ? "user_clock" : "user_group"} color="var(--sp-icon)" /></span>
                     <span className="truncate">{task.person}</span>
-                    {task.receiver.kind === "shift" && task.receiver.code && <ShiftPill code={task.receiver.code} />}
+                    {task.receiver.kind === "shift" && task.receiver.code && <ShiftPill code={task.receiver.code} color={task.receiver.color} />}
                     {task.receiver.kind === "shift" && task.receiver.time && <span className="sp-text-small text-sp-text-label tabular-nums">{task.receiver.time}</span>}
                   </span>
                 </DetailRow>

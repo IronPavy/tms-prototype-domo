@@ -1,4 +1,4 @@
-import type { TaskRowData, TreeLocation } from "@/design-system";
+import type { ShiftColor, TaskRowData, TreeLocation } from "@/design-system";
 import { LOCATIONS, PEOPLE, SHIFTS, SUBTASK_NAMES, TODAY } from "./data";
 
 /** Bibliothek = every task template that was ever created (not a day's occurrence). */
@@ -19,7 +19,7 @@ export function buildTree(kind: "shift" | "employee"): TreeLocation[] {
   const p = kind === "shift" ? "" : "e";
   return LOCATIONS.map((l) => {
     const entries = kind === "shift"
-      ? SHIFTS.filter((s) => s.location === l.id).map((s) => ({ group: s.group, item: { key: `shift:${s.id}`, label: s.label, shift: { code: s.code, time: s.time } } }))
+      ? SHIFTS.filter((s) => s.location === l.id).map((s) => ({ group: s.group, item: { key: `shift:${s.id}`, label: s.label, shift: { code: s.code, time: s.time, color: s.color } } }))
       : PEOPLE.filter((x) => x.location === l.id).map((x) => ({ group: x.team, item: { key: `emp:${x.id}`, label: x.label } }));
     const groups = [...new Set(entries.map((e) => e.group))].sort((a, b) => a.localeCompare(b, "de"));
     return {
@@ -79,17 +79,17 @@ const label = (id: string) => LOCATIONS.find((l) => l.id === id)?.label ?? id;
 export function libraryTasks(): TaskRowData[] {
   const today = `${pad(TODAY.getDate())}.${pad(TODAY.getMonth() + 1)}.${String(TODAY.getFullYear()).slice(2)}`;
   return DEFS.map((d) => {
-    let name = "", group = "", locationId = "", id = "", code: string | undefined, time: string | undefined;
+    let name = "", group = "", locationId = "", id = "", code: string | undefined, time: string | undefined, color: ShiftColor | undefined;
     let kind: "person" | "shift" | "team" = d.recv[0];
     if (d.recv[0] === "person") { const p = PEOPLE.find((x) => x.id === d.recv[1])!; name = p.label; group = p.team; locationId = p.location; id = p.id; }
-    else if (d.recv[0] === "shift") { const s = SHIFTS.find((x) => x.id === d.recv[1])!; name = s.label; group = s.group; locationId = s.location; id = s.id; code = s.code; time = s.time; }
+    else if (d.recv[0] === "shift") { const s = SHIFTS.find((x) => x.id === d.recv[1])!; name = s.label; group = s.group; locationId = s.location; id = s.id; code = s.code; time = s.time; color = s.color; }
     else { locationId = d.recv[1]; group = d.recv[2]; name = `Gruppe ${group}`; id = `${locationId}:${group}`; kind = "team"; }
     const names = SUBTASK_NAMES[d.key === "l7" ? "ccm" : "wgr"];
     const subtaskItems = d.subtasks ? Array.from({ length: d.subtasks }, (_, i) => ({ id: `${d.key}-s${i}`, title: names?.[i]?.[0] ?? `Schritt ${i + 1}`, proof: names?.[i]?.[1] ?? ("check" as const) })) : undefined;
     return {
       id: `lib-${d.key}`, title: d.title, high: d.high, tags: d.tags, proof: d.proof,
       person: name, team: group, location: label(locationId),
-      receiver: { kind, id, group, locationId, code, time },
+      receiver: { kind, id, group, locationId, code, time, color },
       library: true, frequency: d.freq,
       recurring: d.freq !== "once", schedule: d.freq === "once" ? "Einmalig" : `${FREQ_LABEL[d.freq]} · ${d.when}`,
       description: d.description, createdBy: d.by, createdAt: d.created, subtasks: d.subtasks, subtaskItems,

@@ -1,4 +1,4 @@
-import type { AttentionItem, BarDatum, IconName, NavSection, ShiftTask, StatTone, TaskGroup, TaskRowData, TeamRow, TeamSegmentDef, UpcomingItem,
+import type { AttentionItem, BarDatum, IconName, NavSection, ShiftColor, ShiftTask, StatTone, TaskGroup, TaskRowData, TeamRow, TeamSegmentDef, UpcomingItem,
 } from "@/design-system";
 import {
   addDays, addMonths, diffDays, isoWeek, sameDay, sameRange, startOfDay, startOfWeek, type DateRange,
@@ -122,19 +122,24 @@ export function statsForRange(range: DateRange, scope: Scope = ALL_SCOPE, create
 
 /* ─── New task recipients ────────────────────────────────────── */
 
-export interface Person { id: string; label: string; team: string; location: string }
+export interface Person { id: string; label: string; team: string; location: string; /** VZ = Vollzeit, AZ = Aushilfe / Teilzeit */ contract: "VZ" | "AZ" }
 
 export const PEOPLE: Person[] = [
-  { id: "p1",  label: "Ana Grgic",         team: "Küche",     location: "muenchen" },
-  { id: "p2",  label: "Tobias Aurenz",     team: "Küche",     location: "muenchen" },
-  { id: "p3",  label: "Marija Vrdoljak",   team: "Küche",     location: "hamburg" },
-  { id: "p4",  label: "Florian Ade",       team: "Küche",     location: "koeln" },
-  { id: "p5",  label: "Josipa Maksimovic", team: "Shop",      location: "frankfurt" },
-  { id: "p6",  label: "Ruzica Vucic",      team: "Service",   location: "hamburg" },
-  { id: "p7",  label: "Kristina Barac",    team: "Service",   location: "muenchen" },
-  { id: "p8",  label: "Celine Wagner",     team: "Shop",      location: "frankfurt" },
-  { id: "p9",  label: "Kim Fehrmann",      team: "Reinigung", location: "frankfurt" },
-  { id: "p10", label: "Selin Erden",       team: "Reinigung", location: "muenchen" },
+  { id: "p1",  label: "Ana Grgic",         team: "Küche",     location: "muenchen",  contract: "VZ" },
+  { id: "p2",  label: "Tobias Aurenz",     team: "Küche",     location: "muenchen",  contract: "VZ" },
+  { id: "p3",  label: "Marija Vrdoljak",   team: "Küche",     location: "hamburg",   contract: "VZ" },
+  { id: "p4",  label: "Florian Ade",       team: "Küche",     location: "koeln",     contract: "AZ" },
+  { id: "p5",  label: "Josipa Maksimovic", team: "Shop",      location: "frankfurt", contract: "VZ" },
+  { id: "p6",  label: "Ruzica Vucic",      team: "Service",   location: "hamburg",   contract: "AZ" },
+  { id: "p7",  label: "Kristina Barac",    team: "Service",   location: "muenchen",  contract: "VZ" },
+  { id: "p8",  label: "Celine Wagner",     team: "Shop",      location: "frankfurt", contract: "AZ" },
+  { id: "p9",  label: "Kim Fehrmann",      team: "Reinigung", location: "frankfurt", contract: "VZ" },
+  { id: "p10", label: "Selin Erden",       team: "Reinigung", location: "muenchen",  contract: "AZ" },
+  { id: "p11", label: "Anna Müller",       team: "Service",   location: "muenchen",  contract: "VZ" },
+  { id: "p12", label: "Jonas Weber",       team: "Service",   location: "muenchen",  contract: "VZ" },
+  { id: "p13", label: "Lea Schmidt",       team: "Service",   location: "muenchen",  contract: "AZ" },
+  { id: "p14", label: "Marko Horvat",      team: "Reinigung", location: "frankfurt", contract: "VZ" },
+  { id: "p15", label: "Ivana Kovac",       team: "Reinigung", location: "frankfurt", contract: "AZ" },
 ];
 
 /** shifts from the duty roster, with the person on duty today */
@@ -151,35 +156,31 @@ const SHIFT_DEFS = [
 ];
 /** working hours by shift kind (first word of the name) */
 const SHIFT_HOURS: Record<string, string> = { "Frühschicht": "06:00–14:00", "Spätschicht": "14:00–22:00", "Abschlussschicht": "18:00–02:00" };
+/** pill colour of a shift — in the real app it comes from the backend */
+const SHIFT_COLORS: Record<string, ShiftColor> = { "Frühschicht": "amber", "Spätschicht": "violet", "Abschlussschicht": "green" };
 /** group of a shift = the part after "·" in its name · code = first 3 letters of the shift ("Frü") · time = hours it works */
 export const SHIFTS = SHIFT_DEFS.map((s) => ({
   ...s,
   group: s.label.split(" · ")[1],
+  /** "Frühschicht" — shown in the Recipient field */
+  name: s.label.split(" · ")[0],
   code: s.label.split(" · ")[0].slice(0, 3),
   time: SHIFT_HOURS[s.label.split(" · ")[0]] ?? "",
+  color: SHIFT_COLORS[s.label.split(" · ")[0]],
 }));
 
-const TEAM_LIST = [
-  { id: "team-all", label: "Alle Mitarbeitende" }, { id: "team-kitchen", label: "Küche" },
-  { id: "team-service", label: "Service" }, { id: "team-shop", label: "Shop" }, { id: "team-house", label: "Reinigung" },
-];
-
-/** People, teams (with head count) and shifts inside the page scope — the Recipient picker options */
+/** Locations, people and shifts inside the page scope — the Recipient picker options (a group is never a recipient) */
 export function recipientsForScope(scope: Scope) {
-  const people = PEOPLE.filter((p) => inScope(scope, p.location));
-  const teams = TEAM_LIST
-    .map((t) => ({ id: t.id, label: t.label, count: t.id === "team-all" ? people.length : people.filter((p) => p.team === t.label).length }))
-    .filter((t) => t.count);
-  const shifts = SHIFTS.filter((s) => inScope(scope, s.location)).map((s) => ({ id: s.id, label: s.label, sub: `Aus dem Dienstplan · heute: ${s.person}` }));
-  return { people: people.map((p) => ({ id: p.id, label: p.label, group: p.team })), teams, shifts };
+  const locations = scopedLocations(scope).map((l) => ({ id: l.id, label: l.label }));
+  const people = PEOPLE.filter((p) => inScope(scope, p.location)).map((p) => ({ id: p.id, label: p.label, group: p.team, location: p.location, contract: p.contract }));
+  const shifts = SHIFTS.filter((s) => inScope(scope, s.location)).map((s) => ({ id: s.id, label: s.name, group: s.group, location: s.location, code: s.code, time: s.time, color: s.color }));
+  return { locations, people, shifts };
 }
 
 /** any recipient id (person / team / shift) → what the new task needs */
-export function resolveRecipient(id: string): { kind: "person" | "team" | "shift"; label: string; team: string; location?: string } | undefined {
+export function resolveRecipient(id: string): { kind: "person" | "shift"; label: string; team: string; location?: string } | undefined {
   const p = PEOPLE.find((x) => x.id === id);
   if (p) return { kind: "person", label: p.label, team: p.team, location: p.location };
-  const t = TEAM_LIST.find((x) => x.id === id);
-  if (t) return { kind: "team", label: t.label, team: t.label };
   const sh = SHIFTS.find((x) => x.id === id);
   if (sh) return { kind: "shift", label: sh.label, team: "Dienstplan", location: sh.location };
 }

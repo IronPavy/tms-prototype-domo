@@ -1,0 +1,52 @@
+<!doctype html><meta charset="utf-8"><style>
+*{box-sizing:border-box} body{margin:0;background:#E2E9EC;font-family:Roboto,Segoe UI,Arial,sans-serif;color:#04161C;font-size:14px}
+.stage{width:760px;padding:32px;display:flex;flex-direction:column;gap:12px}
+.cap{font-size:12px;color:#33464C;letter-spacing:.02em}
+.modal{background:#fff;border-radius:8px;box-shadow:0 8px 16px #00181E33;width:696px;display:flex;flex-direction:column}
+.mh{padding:20px 24px 12px;font-size:20px;font-weight:500}
+.mb{padding:0 24px 20px;display:flex;flex-direction:column;gap:14px}
+.mf{padding:14px 24px;border-top:1px solid #D0D9DE;display:flex;gap:8px;justify-content:flex-end}
+.btn{height:40px;padding:0 16px;border-radius:8px;display:inline-flex;align-items:center;font-weight:500;border:1px solid #00738E;color:#00738E;background:#fff}
+.btn.p{background:#00738E;color:#fff}
+.lbl{font-weight:500}
+.seg{display:inline-flex;background:#E2E9EC;border-radius:8px;padding:2px;align-self:flex-start}
+.seg span{height:32px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;border-radius:6px;font-weight:500;color:#33464C}
+.seg span.on{background:#fff;color:#04161C;box-shadow:0 1px 2px #00181E33}
+.ico{width:20px;height:20px;flex:none;display:inline-block}
+.panel{border:1px solid #D0D9DE;border-radius:8px;overflow:hidden;max-height:420px}
+.loc{border-bottom:1px solid #D0D9DE}.loc:last-child{border-bottom:0}
+.row{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px 0 8px}
+.row.loch{background:#F2F6F7;font-weight:500}
+.row.grp{padding-left:40px;border-top:1px solid #E2E9EC;font-weight:500}
+.row.leaf{padding-left:72px;border-top:1px solid #EEF2F3}
+.row .sp{flex:1}
+.cb{width:20px;height:20px;border:2px solid #688B99;border-radius:4px;flex:none;background:#fff;position:relative}
+.cb.on{background:#00738E;border-color:#00738E}.cb.on:after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.cb.part{background:#00738E;border-color:#00738E}.cb.part:after{content:"";position:absolute;left:3px;top:7px;width:10px;height:2px;background:#fff}
+.chev{width:20px;height:20px;flex:none;color:#688B99}
+.pill{height:20px;padding:0 6px;border-radius:4px;background:#DCEBF7;border:1px solid #B5D3EC;font-size:12px;font-weight:500;display:inline-flex;align-items:center}
+.time{font-size:12px;color:#33464C;font-variant-numeric:tabular-nums}
+.av{width:24px;height:24px;border-radius:50%;background:#BDDEE5;color:#003A47;font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.cnt{height:20px;padding:0 6px;border-radius:4px;background:#E2E9EC;border:1px solid #C5D4D9;font-size:12px;font-weight:500;display:inline-flex;align-items:center}
+.cnt.b{background:#E1F1F5;border-color:#BDDEE5;color:#00738E}
+.sum{border:1px solid #D0D9DE;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{height:28px;padding:0 6px 0 10px;border-radius:14px;background:#F2F6F7;border:1px solid #C5D4D9;display:inline-flex;align-items:center;gap:6px}
+.chip .x{color:#688B99;font-size:16px;line-height:1;padding:0 2px}
+.muted{font-weight:500;color:#33464C;font-size:12px}
+.search{height:40px;border:1px solid #C5D4D9;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#688B99}
+.note{font-size:12px;color:#33464C;display:flex;gap:6px;align-items:center}
+</style>
+<div class="stage"><div class="cap">2 / 3 · Empfänger › Schicht — Standort › Gruppe › Schichten (KÜRZEL · Name · Zeitraum). Gruppe wählt jede Schicht einzeln, die Gruppe selbst ist nie Empfänger.</div>
+
+<div class="modal"><div class="mh">Neue Aufgabe</div><div class="mb">
+ <div style="display:flex;align-items:center;gap:12px"><div style="display:flex;align-items:center;gap:8px"><span class="lbl">Empfänger</span><span class="cnt b">3 ausgewählt</span></div></div>
+ <div class="seg"><span class=""><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.300 2.700-5 6-5s6 1.700 6 5"/></svg>Mitarbeiter</span><span class="on"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><circle cx="10" cy="10" r="7.500"/><path d="M10 5.500V10l3 2"/></svg>Schicht</span></div><div class="search"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.8"><circle cx="9" cy="9" r="5.500"/><path d="M13.500 13.500L17 17"/></svg><span>Suchen …</span></div>
+ <div class="panel">
+  <div class="loc"><div class="row loch"><span class="cb part"></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><path d="M10 18s6-5.2 6-9.5A6 6 0 0 0 4 8.5C4 12.800 10 18 10 18z"/><circle cx="10" cy="8.500" r="2"/></svg><span>München</span><span class="cnt b">3</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 5 5-5"/></svg></div><div class="row grp"><span class="cb on"></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><circle cx="7" cy="7" r="2.500"/><circle cx="14" cy="8" r="2"/><path d="M2.500 16c0-3 2-4.500 4.500-4.500S11.500 13 11.500 16M12 12c2-.5 5 .3 5 3.500"/></svg><span>Service</span><span class="cnt">3</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 5 5-5"/></svg></div><div class="row leaf"><span class="cb on"></span><span class="pill" style="background:#FFE9C7;border-color:#F2C77A">FRÜ</span><span>Frühschicht</span><span class="sp"></span><span class="time">05:30 – 13:30</span></div><div class="row leaf"><span class="cb on"></span><span class="pill" style="background:#E3DAF7;border-color:#BDA9EA">SPÄ</span><span>Spätschicht</span><span class="sp"></span><span class="time">13:30 – 22:00</span></div><div class="row leaf"><span class="cb on"></span><span class="pill" style="background:#D4EFE0;border-color:#8FD0AE">ABE</span><span>Abendschicht</span><span class="sp"></span><span class="time">17:00 – 23:30</span></div><div class="row grp"><span class="cb "></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><circle cx="7" cy="7" r="2.500"/><circle cx="14" cy="8" r="2"/><path d="M2.500 16c0-3 2-4.500 4.500-4.500S11.500 13 11.500 16M12 12c2-.5 5 .3 5 3.500"/></svg><span>Küche</span><span class="cnt">3</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l5 5-5 5"/></svg></div><div class="row grp"><span class="cb "></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><circle cx="7" cy="7" r="2.500"/><circle cx="14" cy="8" r="2"/><path d="M2.500 16c0-3 2-4.500 4.500-4.500S11.500 13 11.500 16M12 12c2-.5 5 .3 5 3.500"/></svg><span>Reinigung</span><span class="cnt">2</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l5 5-5 5"/></svg></div></div>
+  <div class="loc"><div class="row loch"><span class="cb "></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><path d="M10 18s6-5.2 6-9.5A6 6 0 0 0 4 8.5C4 12.800 10 18 10 18z"/><circle cx="10" cy="8.500" r="2"/></svg><span>Frankfurt</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l5 5-5 5"/></svg></div></div>
+  <div class="loc"><div class="row loch"><span class="cb "></span><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="#688B99" stroke-width="1.6"><path d="M10 18s6-5.2 6-9.5A6 6 0 0 0 4 8.5C4 12.800 10 18 10 18z"/><circle cx="10" cy="8.500" r="2"/></svg><span>Hamburg</span><span class="sp"></span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l5 5-5 5"/></svg></div></div>
+ </div>
+ <div class="sum"><span class="muted">Empfänger (3) — jede Schicht einzeln</span><div class="chips"><span class="chip"><span class="pill" style="background:#FFE9C7;border-color:#F2C77A">FRÜ</span>Frühschicht<span class="time">05:30 – 13:30</span><span class="x">×</span></span><span class="chip"><span class="pill" style="background:#E3DAF7;border-color:#BDA9EA">SPÄ</span>Spätschicht<span class="time">13:30 – 22:00</span><span class="x">×</span></span><span class="chip"><span class="pill" style="background:#D4EFE0;border-color:#8FD0AE">ABE</span>Abendschicht<span class="time">17:00 – 23:30</span><span class="x">×</span></span></div></div>
+</div>
+<div class="mf"><span class="btn">Abbrechen</span><span class="btn p">Aufgabe senden</span></div></div></div>

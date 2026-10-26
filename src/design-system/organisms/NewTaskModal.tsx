@@ -14,7 +14,7 @@ import { DueDateModal } from "./DueDateModal";
 import { defaultDue, dueLabel, type DueSettings } from "../utils/due";
 
 export interface NewTaskValues {
-  /** person / team / shift ids */
+  /** person / shift ids (never a group) */
   recipients: string[];
   title: string;
   description: string;
@@ -36,7 +36,7 @@ export const emptyTask = (today: Date): NewTaskValues => ({
 });
 
 export interface NewTaskModalProps {
-  recipients: Pick<RecipientSelectProps, "people" | "teams" | "shifts">;
+  recipients: Pick<RecipientSelectProps, "locations" | "people" | "shifts">;
   initial: NewTaskValues;
   /** true when a saved draft is being continued */
   isDraft?: boolean;
@@ -195,7 +195,7 @@ export function NewTaskModal({ recipients, initial, isDraft, mode = "create", on
       <span className="flex-1 min-w-0 sp-text-standard text-sp-text">{children}</span>
     </div>
   );
-  const labelOf = (id: string) => recipients.people.find((x) => x.id === id)?.label ?? recipients.teams.find((x) => x.id === id)?.label ?? recipients.shifts.find((x) => x.id === id)?.label;
+  const labelOf = (id: string) => recipients.people.find((x) => x.id === id)?.label ?? recipients.shifts.find((x) => x.id === id)?.label;
   const names = v.recipients.map(labelOf).filter(Boolean) as string[];
   const info = TONES.info;
 
