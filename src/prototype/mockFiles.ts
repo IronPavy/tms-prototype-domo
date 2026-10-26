@@ -36,6 +36,9 @@ export const TASK_FILES: Record<string, string[]> = {
 export const SUBTASK_FILES: Record<string, Record<number, string>> = {
   wcf: { 3: "foto-wc" },
   ccm: { 1: "foto-siebtraeger", 4: "probelauf" },
+  sue: { 1: "z-bon", 2: "foto-zapfsaeulen", 3: "notfallplan" },
+  wgr: { 1: "foto-gastraum", 2: "foto-fritteuse", 3: "inventur-bar" },
+  caf: { 1: "foto-siebtraeger", 2: "foto-vitrine", 3: "temperaturprotokoll" },
   dcf: { 1: "foto-fritteuse", 2: "foto-fritteuse", 5: "messprotokoll" },
 };
 

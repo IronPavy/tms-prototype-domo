@@ -29,7 +29,7 @@ const ACTION: Record<"check" | "photo" | "attachment", { icon: IconName; open: s
 };
 
 /** Icon-sized action button with an SP3 Tooltip (fixed, so scrolling containers never clip it). */
-function IconAction({ label, icon, color, onClick, disabled }: { label: string; icon: IconName; color: string; onClick: () => void; disabled?: boolean }) {
+function IconAction({ label, icon, color, onClick, disabled, small }: { label: string; icon: IconName; color: string; onClick: () => void; disabled?: boolean; small?: boolean }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const show = (el: HTMLElement) => { const r = el.getBoundingClientRect(); setPos({ x: r.left + r.width / 2, y: r.top }); };
   return (
@@ -42,9 +42,9 @@ function IconAction({ label, icon, color, onClick, disabled }: { label: string; 
       onMouseLeave={() => setPos(null)}
       onFocus={(e) => show(e.currentTarget)}
       onBlur={() => setPos(null)}
-      className={`relative flex items-center justify-center shrink-0 size-8 p-0 border-0 bg-transparent rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
+      className={`relative flex items-center justify-center shrink-0 ${small ? "size-6" : "size-8"} p-0 border-0 bg-transparent rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
     >
-      <Icon name={icon} size={20} color={color} />
+      <Icon name={icon} size={small ? 16 : 20} color={color} />
       {pos && (
         <span className="fixed z-[80] -translate-x-1/2 -translate-y-full" style={{ left: pos.x, top: pos.y - 4 }}>
           <Tooltip>{label}</Tooltip>
@@ -83,6 +83,25 @@ export function SubtaskList({ items, done, files, onToggle, onAddFile, onRemoveF
             <li key={s.id} className={`flex flex-col gap-[var(--sp-space-2x)] py-[var(--sp-space-2x)] pl-[var(--sp-space-3x)] pr-[var(--sp-space-2x)] ${i ? "border-0 border-t border-solid border-sp-neutral-fill-light" : ""}`}>
               <div className="flex items-center gap-[var(--sp-space-3x)] min-h-8">
                 <TextHint text={s.title} className={`flex-1 sp-text-standard ${isDone ? "line-through text-sp-text-label" : "text-sp-text"}`} />
+                {file && (
+                  <span className="flex items-center shrink min-w-0 max-w-[45%] h-8 bg-sp-neutral-fill-light border border-solid border-sp-neutral-border-light rounded-[var(--sp-radius-2x)]">
+                    <button
+                      type="button"
+                      onClick={() => onOpenFile?.(s.id)}
+                      aria-label={`${file.name} öffnen`}
+                      title={`${file.name} · ${fileSize(file.size)}`}
+                      className="flex items-center gap-[var(--sp-space-2x)] min-w-0 h-full pl-[var(--sp-space-1x)] pr-[var(--sp-space-2x)] border-0 bg-transparent rounded-[var(--sp-radius-2x)] cursor-pointer text-left outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)]"
+                    >
+                      {file.kind === "image" ? (
+                        <img src={file.url} alt="" className="shrink-0 size-6 rounded-[var(--sp-radius-1x)] object-cover" />
+                      ) : (
+                        <Icon name="page_document" color="var(--sp-icon)" className="mx-[var(--sp-space-1x)]" />
+                      )}
+                      <span className="min-w-0 truncate sp-text-small-medium text-sp-text">{file.name}</span>
+                    </button>
+                    <IconAction label="Datei entfernen und Unteraufgabe wieder öffnen" icon="close" color="var(--sp-icon)" onClick={() => onRemoveFile(s.id)} small />
+                  </span>
+                )}
                 {isDone ? (
                   <IconAction
                     label={kind === "check" ? "Erledigt – klicken zum Wiederöffnen" : "Erledigt"}
@@ -100,26 +119,6 @@ export function SubtaskList({ items, done, files, onToggle, onAddFile, onRemoveF
                   />
                 )}
               </div>
-
-              {file && (
-                <span className="flex items-center self-start max-w-full h-10 pr-[var(--sp-space-1x)] bg-sp-neutral-fill-light border border-solid border-sp-neutral-border-light rounded-[var(--sp-radius-2x)]">
-                  <button
-                    type="button"
-                    onClick={() => onOpenFile?.(s.id)}
-                    aria-label={`${file.name} öffnen`}
-                    className="flex items-center gap-[var(--sp-space-2x)] min-w-0 h-full pl-[var(--sp-space-1x)] pr-[var(--sp-space-2x)] border-0 bg-transparent rounded-[var(--sp-radius-2x)] cursor-pointer text-left outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)]"
-                  >
-                    {file.kind === "image" ? (
-                      <img src={file.url} alt="" className="shrink-0 size-8 rounded-[var(--sp-radius-1x)] object-cover" />
-                    ) : (
-                      <Icon name="attachment" color="var(--sp-icon)" className="mx-[var(--sp-space-1x)]" />
-                    )}
-                    <TextHint text={file.name} max={28} className="sp-text-small-medium text-sp-text" />
-                    <span className="sp-text-small text-sp-text-label whitespace-nowrap">{fileSize(file.size)}</span>
-                  </button>
-                  <IconAction label="Datei entfernen und Unteraufgabe wieder öffnen" icon="close" color="var(--sp-icon)" onClick={() => onRemoveFile(s.id)} />
-                </span>
-              )}
 
               {open && (
                 <FileDropZone

@@ -353,6 +353,10 @@ const ONE_TIME: (TaskTemplate & { day: number; status?: TaskRowData["status"]; c
   { key: "ht", title: "Hygieneschulung: Teilnahmebescheinigung hochladen", day: -1, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Selin Erden", "Reinigung"]], status: "overdue" },
   { key: "bic", title: "Getränke-Inventur Bar", day: -1, time: "22:00", tags: ["Inventur"], proof: "attachment", people: [["Marija Vrdoljak", "Küche"]], status: "done", comments: 1 },
   { key: "obs", title: "Ersatzdichtung für Siebträger bestellen", day: 1, time: "17:00", tags: ["Service"], proof: "check", people: [["Ruzica Vucic", "Service"]] },
+  // erledigte Aufgaben mit Unteraufgaben (Check · Foto · Anhang gemischt)
+  { key: "sue", subtasks: 4, title: "Schichtübergabe Tankstelle", high: true, day: 0, time: "05:45", tags: ["Kasse", "Sicherheit"], proof: "check", people: [["Josipa Maksimovic", "Frühschicht · Shop"]], status: "done" },
+  { key: "wgr", subtasks: 5, title: "Wochenend-Grundreinigung Restaurant", day: 0, time: "06:15", tags: ["Reinigung", "HACCP"], proof: "check", people: [["Selin Erden", "Reinigung"]], status: "done" },
+  { key: "caf", subtasks: 5, title: "Eröffnungs-Check Café & Bar", high: true, day: 0, time: "06:00", tags: ["Service", "HACCP"], proof: "check", people: [["Marija Vrdoljak", "Küche"]], status: "done" },
   { key: "erb", title: "Einweisung Fluchtwege: Unterschriftenliste", day: 2, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Kristina Barac", "Alle Mitarbeitende"]], loc: "München" },
 ];
 
@@ -415,6 +419,9 @@ const DESCRIPTIONS: Record<string, string> = {
   ht: "Hygieneschulung abschließen und die Teilnahmebescheinigung hochladen.",
   bic: "Bestand an der Bar zählen und die Inventurliste hochladen.",
   obs: "Neue Dichtung für den Siebträger bestellen.",
+  sue: "Kasse zählen, Zwischenabschluss erstellen und die Tankstelle an die Spätschicht übergeben. Foto und Protokolle hochladen.",
+  wgr: "Gastraum und Küche gründlich reinigen, mit Fotos und Reinigungsnachweis dokumentieren.",
+  caf: "Café und Bar für den Tag vorbereiten: Maschine, Vitrine, Temperaturprotokoll und Kasse.",
   erb: "Mitarbeitende über Fluchtwege und Sammelplätze einweisen und die Unterschriftenliste hochladen.",
   nd1: "Lagerraum aufräumen, Regale beschriften und abgelaufene Ware aussortieren. Foto vom aufgeräumten Lager.",
   nd2: "Speisekarte für den Herbst aktualisieren und neue Preise eintragen. Entwurf hochladen.",
@@ -426,6 +433,9 @@ type SubProof = NonNullable<NonNullable<TaskRowData["subtaskItems"]>[number]["pr
 const SUBTASK_NAMES: Record<string, [string, SubProof][]> = {
   wcf: [["Seife auffüllen", "check"], ["Papier auffüllen", "check"], ["Mülleimer leeren", "check"], ["Waschbecken & Boden reinigen (Foto)", "photo"]],
   ccm: [["Entkalker ansetzen", "check"], ["Brühgruppe reinigen (Foto)", "photo"], ["Auffangschale spülen", "check"], ["Dampflanze reinigen", "check"], ["Probelauf-Protokoll hochladen", "attachment"]],
+  sue: [["Kassenstand zählen", "check"], ["Zwischenabschluss (Z-Bon) hochladen", "attachment"], ["Zapfsäulen und Tankplatz (Foto)", "photo"], ["Übergabeprotokoll hochladen", "attachment"]],
+  wgr: [["Boden gewischt und desinfiziert", "check"], ["Gastraum nach der Reinigung (Foto)", "photo"], ["Küche und Arbeitsflächen (Foto)", "photo"], ["Reinigungsnachweis hochladen", "attachment"], ["Müll und Altglas entsorgt", "check"]],
+  caf: [["Maschine einschalten und spülen", "check"], ["Siebträger und Brühgruppe (Foto)", "photo"], ["Kühlvitrine einräumen (Foto)", "photo"], ["Temperaturprotokoll hochladen", "attachment"], ["Kasse öffnen", "check"]],
   dcf: [["Öl ablassen", "check"], ["Becken reinigen (Foto)", "photo"], ["Filter wechseln (Foto)", "photo"], ["Frisches Öl einfüllen", "check"], ["Flächen abwischen", "check"], ["Thermostat messen (Messprotokoll)", "attachment"]],
 };
 function subtaskItemsFor(t: TaskTemplate, status: TaskRowData["status"], d: Date, person: string, time: string): TaskRowData["subtaskItems"] {
