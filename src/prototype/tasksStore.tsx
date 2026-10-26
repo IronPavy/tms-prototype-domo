@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { NewTaskModal, TaskDetailModal, Toast, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type TaskComment, type TaskGroup, type TaskRowData } from "@/design-system";
+import { NewTaskModal, TaskDetailModal, Toast, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type SubFile, type TaskGroup, type TaskRowData } from "@/design-system";
 import { addDays, sameDay, startOfDay } from "@/design-system/utils/date";
 import { ALL_SCOPE, LOCATIONS, PEOPLE, TODAY, compareDue, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
 import { useScope } from "./scope";
@@ -34,7 +34,7 @@ const seedDraft = (id: string, daysAgo: number, v: Partial<NewTaskValues>): Draf
 });
 const SEED_DRAFTS: Draft[] = [
   seedDraft("d1", 1, { title: "Notausgänge prüfen", recipients: ["team-house"], proof: "check", subtasks: ["Ausgang 1", "Ausgang 2"] }),
-  seedDraft("d2", 2, { title: "Allergene der Speisekarte prüfen", recipients: ["p1", "p4"], proof: "form", priority: true }),
+  seedDraft("d2", 2, { title: "Allergene der Speisekarte prüfen", recipients: ["p1", "p4"], proof: "attachment", priority: true }),
   seedDraft("d3", 4, { title: "Terrasse grundreinigen", recipients: ["p6"], proof: "photo" }),
 ];
 
@@ -46,14 +46,16 @@ function buildTask(v: NewTaskValues, id: string): CreatedTask {
   const due = new Date(`${dd.start}T${dueClock(dd)}`);
   const day = startOfDay(due);
   const now = new Date();
-  const subtasks = v.subtasks.filter((s) => s.trim()).length;
+  const named = v.subtasks.map((title, i) => ({ title: title.trim(), proof: v.subtaskProofs?.[i] })).filter((s) => s.title);
+  const subtasks = named.length;
+  const subtaskItems = named.map((s, i) => ({ id: `${id}-s${i}`, title: s.title, proof: s.proof === "photo" || s.proof === "attachment" ? s.proof : ("check" as const) }));
   return {
     day,
     task: {
       id, title: v.title.trim(), high: v.priority, recurring: dd.repeat !== "none", schedule: scheduleLabel(dd), tags: [],
       person: first ? `${first.label}${picked.length > 1 ? ` +${picked.length - 1}` : ""}` : "—",
       team: first?.team ?? "", location: LOCATIONS.find((l) => l.id === first?.location)?.label,
-      subtasks: subtasks || undefined, description: v.description.trim() || undefined, createdBy: ME, createdAt: stamp(now),
+      subtasks: subtasks || undefined, subtaskItems: subtasks ? subtaskItems : undefined, description: v.description.trim() || undefined, createdBy: ME, createdAt: stamp(now),
       due: { date: `${pad(due.getDate())}.${pad(due.getMonth() + 1)}.${String(due.getFullYear()).slice(2)}`, time: dd.timeMode === "allday" ? "ganztägig" : dd.timeMode === "range" ? `${dd.from}–${dd.to}` : dd.time },
       proof: v.proof, status: due < now ? "overdue" : "open", comments: undefined,
     },
@@ -78,13 +80,6 @@ function valuesFromTask(t: TaskRowData): NewTaskValues {
     priority: !!t.high,
   };
 }
-
-const DISCUSSION_SEED: Omit<TaskComment, "id">[] = [
-  { author: "Anna Müller", time: "15.10.26, 11:02 Uhr", text: "Please make sure this is done before the evening shift." },
-  { author: "Tobias Aurenz", time: "15.10.26, 13:40 Uhr", text: "On it — waiting for the delivery first." },
-  { author: "Kristina Barac", time: "16.10.26, 08:15 Uhr", text: "Delivery arrived, you can start." },
-  { author: "Michael Potsch", time: "16.10.26, 09:30 Uhr", text: "Thanks, keep me posted." },
-];
 
 /** Put the created tasks into the groups of the Tasks page: overdue → "Overdue – still open", else the day of their due date. */
 export function withCreatedTasks(groups: TaskGroup[], created: CreatedTask[]): TaskGroup[] {
@@ -112,8 +107,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   // task detail modal
   const [detail, setDetail] = useState<TaskRowData | null>(null);
   const [editing, setEditing] = useState(false);
-  const [subDone, setSubDone] = useState<Record<string, string[]>>({});
-  const [discussion, setDiscussion] = useState<Record<string, TaskComment[]>>({});
+  const [subState, setSubState] = useState<Record<string, Record<string, { done: boolean; file?: SubFile }>>>({});
   const [events, setEvents] = useState<Record<string, HistoryEntry[]>>({});
   const [edits, setEdits] = useState<Record<string, Partial<TaskRowData>>>({});
 
@@ -137,12 +131,12 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
       tasks: g.tasks.map((t0) => {
         const t = edits[t0.id] ? { ...t0, ...edits[t0.id] } : t0;
         // ticked subtasks (task detail) show live in the row as "2/5"
-        const done = subDone[t.id];
-        return done && t.subtaskItems ? { ...t, subtaskItems: t.subtaskItems.map((s) => ({ ...s, done: done.includes(s.id) })) } : t;
+        const st = subState[t.id];
+        return st && t.subtaskItems ? { ...t, subtaskItems: t.subtaskItems.map((s) => ({ ...s, done: st[s.id]?.done ?? s.done })) } : t;
       }),
     })),
     recipientNames: (ids) => ids.flatMap((i) => resolveRecipient(i)?.label ?? []).join(", "),
-  }), [created, drafts, edits, subDone]);
+  }), [created, drafts, edits, subState]);
 
   const send = (v: NewTaskValues) => {
     const built = buildTask(v, `new-${counter}`);
@@ -161,19 +155,24 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   };
 
   const cur = detail ? { ...detail, ...edits[detail.id] } : null;
-  const doneIds = cur ? (subDone[cur.id] ?? (cur.subtaskItems ?? []).filter((x) => x.done).map((x) => x.id)) : [];
-  const comments = cur ? (discussion[cur.id] ?? DISCUSSION_SEED.slice(0, cur.comments ?? 0).map((c, i) => ({ ...c, id: `seed-${i}` }))) : [];
+  const doneIds = cur ? (cur.subtaskItems ?? []).filter((x) => subState[cur.id]?.[x.id]?.done ?? x.done).map((x) => x.id) : [];
+  const subFiles: Record<string, SubFile> = {};
+  Object.entries(cur ? subState[cur.id] ?? {} : {}).forEach(([k, v]) => { if (v.file) subFiles[k] = v.file; });
 
-  const toggleSubtask = (id: string) => {
+  /** one subtask changes state (check toggled / file added / file removed) + a history entry */
+  const setSub = (id: string, done: boolean, file?: SubFile) => {
     if (!cur) return;
-    const on = !doneIds.includes(id);
     const title = cur.subtaskItems?.find((x) => x.id === id)?.title ?? "";
-    setSubDone((m) => ({ ...m, [cur.id]: on ? [...doneIds, id] : doneIds.filter((x) => x !== id) }));
-    setEvents((m) => ({ ...m, [cur.id]: [...(m[cur.id] ?? []), { id: `e-${Date.now()}`, title: `Subtask “${title}” ${on ? "completed" : "reopened"}`, meta: stamp(new Date()), state: on ? "done" : "pending" }] }));
+    setSubState((m) => ({ ...m, [cur.id]: { ...m[cur.id], [id]: { done, file } } }));
+    const text = done ? (file ? `Unteraufgabe „${title}“ erledigt – ${file.name}` : `Unteraufgabe „${title}“ erledigt`) : `Unteraufgabe „${title}“ wieder geöffnet`;
+    setEvents((m) => ({ ...m, [cur.id]: [...(m[cur.id] ?? []), { id: `e-${Date.now()}`, title: text, meta: stamp(new Date()), state: done ? "done" : "pending" }] }));
   };
-  const addComment = (text: string) => {
-    if (!cur) return;
-    setDiscussion((m) => ({ ...m, [cur.id]: [...comments, { id: `c-${Date.now()}`, author: ME, time: stamp(new Date()), text }] }));
+  const toggleSubtask = (id: string) => setSub(id, !doneIds.includes(id));
+  const addSubtaskFile = (id: string, f: File) => setSub(id, true, { name: f.name, size: f.size, kind: f.type.startsWith("image/") ? "image" : f.type === "application/pdf" ? "pdf" : "other", url: URL.createObjectURL(f) });
+  const removeSubtaskFile = (id: string) => {
+    const old = subState[cur?.id ?? ""]?.[id]?.file;
+    if (old?.url) URL.revokeObjectURL(old.url);
+    setSub(id, false);
   };
   const saveEdit = (v: NewTaskValues) => {
     if (!cur) return;
@@ -219,11 +218,11 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           key={cur.id}
           task={cur}
           subtaskDone={doneIds}
+          subtaskFiles={subFiles}
           onToggleSubtask={toggleSubtask}
-          comments={comments}
-          onComment={addComment}
+          onAddSubtaskFile={addSubtaskFile}
+          onRemoveSubtaskFile={removeSubtaskFile}
           extraHistory={events[cur.id]}
-          onEdit={() => setEditing(true)}
           onClose={() => setDetail(null)}
         />
       )}

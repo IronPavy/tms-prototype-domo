@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   AttentionList, BarChart, Button, DateRangePicker, DonutChart, Link, PageHeader, Panel, ScrollArea, ShiftGroup,
-  StatCard, SubmissionList, TeamBreakdown, UpcomingList,
+  StatCard, CompletedTaskList, TeamBreakdown, UpcomingList,
 } from "@/design-system";
 import { diffDays, formatRange } from "@/design-system/utils/date";
 import {
-  ATTENTION_ITEMS, SUBMISSIONS, TEAM_SEGMENTS, TODAY, TODAY_SHIFTS, UPCOMING, completionSeries, inScope, statsForRange, taskFromAttention,
-  taskFromShift, taskFromUpcoming, teamsForRange,
+  ATTENTION_ITEMS, RECENT_DONE, TEAM_SEGMENTS, TODAY, TODAY_SHIFTS, UPCOMING, completionSeries, inScope, statsForRange, taskFromAttention,
+  taskFromRecent, taskFromShift, taskFromUpcoming, teamsForRange,
   type StatKey,
 } from "./data";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
@@ -34,7 +34,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
   const scoped = ATTENTION_ITEMS.filter((i) => inScope(scope, i.location));
   const attention = filter && filter !== "all" ? scoped.filter((i) => i.kpi === filter) : scoped;
   const shifts = TODAY_SHIFTS.map((g) => ({ ...g, tasks: g.tasks.filter((t) => inScope(scope, t.location)) })).filter((g) => g.tasks.length);
-  const submissions = SUBMISSIONS.filter((s) => inScope(scope, s.location));
+  const recent = RECENT_DONE.filter((s) => inScope(scope, s.location));
   const upcoming = UPCOMING.filter((u) => inScope(scope, u.location));
   const filterLabel = stats.find((s) => s.key === filter)?.label;
   /** By team shows only due statuses — the "Open" filter does not apply there */
@@ -108,7 +108,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
         </Panel>
       </div>
 
-      {/* Today + latest form submissions — both lists scroll inside a fixed-height card */}
+      {/* Today + recently completed — both lists scroll inside a fixed-height card */}
       <div className="grid gap-[var(--sp-space-4x)] grid-cols-1 xl:grid-cols-2">
         <Panel
           title="Today"
@@ -120,9 +120,12 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
           </ScrollArea>
         </Panel>
 
-        <Panel title="Latest form submissions" actions={<Link role="button" tabIndex={0}>Reports</Link>}>
-          <ScrollArea label="Latest form submissions" className="h-[400px]" contentClassName="pr-[var(--sp-space-6x)]">
-            <SubmissionList items={submissions} />
+        <Panel title="Zuletzt erledigt" meta="Was die Mitarbeitenden abgegeben haben" actions={<Link role="button" tabIndex={0}>Alle Aufgaben</Link>}>
+          <ScrollArea label="Zuletzt erledigt" className="h-[400px]" contentClassName="pr-[var(--sp-space-6x)]">
+            <CompletedTaskList
+              items={recent.map((s) => ({ id: s.id, title: s.title, person: s.person, proof: s.proof, when: `${s.day === 0 ? "Heute" : "Gestern"} ${s.time}` }))}
+              onOpen={(i) => openDetail(taskFromRecent(RECENT_DONE.find((x) => x.id === i.id)!))}
+            />
           </ScrollArea>
         </Panel>
       </div>

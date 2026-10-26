@@ -27,6 +27,10 @@ export interface TaskListByDayProps {
   pastOpen: boolean;
   onTogglePast: () => void;
   onOpen?: (task: TaskRowData) => void;
+  /** fold past days into "Vergangene Tage" (default true; off for the Handlungsbedarf tab) */
+  foldPast?: boolean;
+  /** show days without tasks ("Keine Aufgaben"); default: only for periods of 7 days or less */
+  showEmptyDays?: boolean;
 }
 
 const PAGE = 10;
@@ -41,10 +45,10 @@ const ROWS_CARD = "overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius
     · past days (period contains today): ONE line "Vergangene Tage" (arrow, dates, count) right above today — click opens them
     · at most 10 tasks per day: "Weitere 10 laden ({n} übrig)" / "Restliche {n} laden" and "Weniger anzeigen".
     Cards = SP3 "Card" Filled (surface/raised, radius 3x); empty pinned sections use the SP3 Empty State (Small). */
-export function TaskListByDay({ overdue, noDue, days, today, pastOpen, onTogglePast, onOpen }: TaskListByDayProps) {
+export function TaskListByDay({ overdue, noDue, days, today, pastOpen, onTogglePast, onOpen, foldPast = true, showEmptyDays: showEmpty }: TaskListByDayProps) {
   const [shown, setShown] = useState<Record<string, number>>({});
-  const showEmptyDays = days.length <= 7;
-  const hasToday = days.some((d) => sameDay(d.date, today));
+  const showEmptyDays = showEmpty ?? days.length <= 7;
+  const hasToday = foldPast && days.some((d) => sameDay(d.date, today));
   const past = hasToday ? days.filter((d) => d.date < today && !sameDay(d.date, today)) : [];
   const rest = hasToday ? days.filter((d) => !past.includes(d)) : days;
   const visibleDays = (list: DayGroup[]) => list.filter((d) => showEmptyDays || d.tasks.length);

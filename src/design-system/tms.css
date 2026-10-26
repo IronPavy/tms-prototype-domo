@@ -46,6 +46,7 @@
   --tms-time-max-width: 224px;
   --tms-toast-min-width: 280px;
   --tms-toast-max-width: 480px;
+  --tms-dropdown-width: 200px;   /* header dropdowns (Gruppen / Standort): button and open list share it */
 }
 
 @theme inline {

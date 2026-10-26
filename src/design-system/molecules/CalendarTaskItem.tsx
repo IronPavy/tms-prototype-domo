@@ -7,7 +7,7 @@ import { SOLUTION, TASK_STATUS, type TaskRowData } from "./TaskRow";
 const isGroup = (t: TaskRowData) => /alle mitarbeitende/i.test(t.team);
 
 /** One task in the Calendar view: due time in a Badge Chip coloured by status (clock icon) ·
-    solution type as an icon at the right end of that row (tooltip = name; danger on a form deviation; none for tasks with subtasks —
+    solution type as an icon at the right end of that row (tooltip = name; none for tasks with subtasks —
     their type is per subtask) ·
     title Roboto Standard/Medium in text · assignee (person = user icon, group = user_group icon; Small, text label).
     Item = surface/default · radius 2x · padding 3x · gap 2x · hover / pressed overlay · focus = Focus Brand. */
@@ -28,11 +28,10 @@ export function CalendarTaskItem({ task, onOpen }: { task: TaskRowData; onOpen?:
         <span title={st.label} className="flex"><StatusChip tone={st.tone} icon="clock" label={task.noDue ? "Ohne Fälligkeit" : task.due.time} /></span>
         {!task.subtasks && (
           <IconHint
-            label={task.deviation ? `${sol.label} · Abweichung` : sol.label}
-            type={task.deviation ? "error" : "normal"}
+            label={sol.label}
             className="size-6 rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]"
           >
-            <Icon name={sol.icon} color={task.deviation ? "var(--sp-danger-on-surface)" : "var(--sp-icon)"} />
+            <Icon name={sol.icon} color="var(--sp-icon)" />
           </IconHint>
         )}
       </span>

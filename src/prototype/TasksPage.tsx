@@ -44,7 +44,9 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const [view, setViewState] = useState(() => { try { return localStorage.getItem("aufgaben-view") ?? "list"; } catch { return "list"; } });
   const setView = (v: string) => { setViewState(v); try { localStorage.setItem("aufgaben-view", v); } catch { /* storage blocked */ } };
   // Library and Drafts have no Calendar view (a draft has no due day); fall back to List if it was selected
-  const views = tab === "status" ? VIEWS : VIEWS.filter((v) => v.id !== "calendar");
+  const listTab = tab === "status" || tab === "action"; // Status and Handlungsbedarf share the list
+  const isAction = tab === "action";
+  const views = listTab ? VIEWS : VIEWS.filter((v) => v.id !== "calendar");
   const shownView = views.some((v) => v.id === view && !v.disabled) ? view : "list";
 
   const scope = useScope();
@@ -74,7 +76,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
 
   // list: status pills · type · due · search applied to every group
   const matches = (t: TaskRowData) =>
-    active.has(t.status) &&
+    (isAction ? t.status === "overdue" : active.has(t.status)) &&
     inScope(scope, t.location) &&
     (dueFilter === "all" || (dueFilter === "with" && !t.noDue) || (dueFilter === "without" && !!t.noDue)) &&
     (type === "all" || (type === "one-time" && !t.recurring) || (type === "recurring" && !!t.recurring)) &&
@@ -82,14 +84,13 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const allGroups = withEdits(withCreatedTasks(taskGroupsForRange(range), created));
   const groups = allGroups.map((g) => ({ ...g, tasks: g.tasks.filter(matches) }));
   const noResults = groups.every((g) => !g.tasks.length);
-  // list view: pinned sections (Überfällig, Ohne Fälligkeit) + days oldest → newest; a task is listed in one place only
+  // list view: pinned section Ohne Fälligkeit + days oldest → newest (overdue tasks sit on their own day; Handlungsbedarf lists only those)
   const dayGroups = groups.filter((g) => g.date);
-  const overdueTasks = [
-    ...groups.filter((g) => g.kind === "overdue").flatMap((g) => g.tasks),
-    ...dayGroups.flatMap((g) => g.tasks.filter((t) => t.status === "overdue")),
-  ].filter((t, i, a) => a.findIndex((x) => x.id === t.id) === i).sort((a, b) => dueDateKey(a) - dueDateKey(b) || compareDue(a, b));
   const noDueTasks = groups.find((g) => g.kind === "nodue")?.tasks ?? [];
-  const listDays = dayGroups.map((g) => ({ id: g.id, date: g.date!, label: g.label, tasks: g.tasks.filter((t) => t.status !== "overdue").sort(compareDue) }));
+  const listDays = dayGroups.map((g) => ({ id: g.id, date: g.date!, label: g.label, tasks: [...g.tasks].sort(compareDue) }));
+  const filtered = !!q || type !== "all" || dueFilter !== "all";
+  // number of overdue tasks (with a due date) in the period — badge of the Handlungsbedarf tab
+  const actionCount = allGroups.flatMap((g) => g.tasks).filter((t) => t.status === "overdue" && !t.noDue && inScope(scope, t.location) && searchMatch(t)).length;
   // with an applied search the status chips and the Status tab count only the tasks that match the search text
   const found = allGroups.flatMap((g) => g.tasks).filter((t) => inScope(scope, t.location) && searchMatch(t));
   const countOf = (key: StatKey, fallback: number) => (q ? found.filter((t) => t.status === key).length : fallback);
@@ -116,8 +117,9 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           onChange={setTab}
           tabs={[
             { id: "status", label: "Status", count: totalShown },
+            { id: "action", label: "Handlungsbedarf", count: actionCount, countTone: "error" },
             { id: "library", label: "Bibliothek", count: 15 },
-            { id: "drafts", label: "Entwürfe", count: drafts.length, countTone: "error" },
+            { id: "drafts", label: "Entwürfe", count: drafts.length },
           ]}
         />
 
@@ -187,27 +189,30 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             action={<Button variant="primary" label="Zurücksetzen" onClick={() => setActive(new Set(statuses.map((s) => s.key)))} />}
           />
         </div>
-      ) : tab === "status" && noResults ? (
+      ) : listTab && noResults ? (
         /* nothing matches the search / filters: say so and offer a reset of search + filters */
         <div className="flex justify-center py-[var(--sp-space-6x)]">
           <EmptyTasks
-            text={q ? `Keine Aufgaben für „${shownQuery}“ gefunden.` : "Keine Aufgaben gefunden."}
-            action={<Button variant="primary" label="Zurücksetzen" onClick={resetAll} />}
+            title={isAction && !filtered ? "Kein Handlungsbedarf" : undefined}
+            text={q ? `Keine Aufgaben für „${shownQuery}“ gefunden.` : isAction && !filtered ? "Es gibt keine überfälligen Aufgaben." : "Keine Aufgaben gefunden."}
+            action={filtered || (!isAction && active.size < statuses.length) ? <Button variant="primary" label="Zurücksetzen" onClick={resetAll} /> : undefined}
           />
         </div>
-      ) : tab === "status" && shownView === "list" ? (
+      ) : listTab && shownView === "list" ? (
         <TaskListByDay
-          overdue={active.has("overdue") && dueFilter !== "without" ? overdueTasks : null}
-          noDue={dueFilter !== "with" ? noDueTasks : null}
+          overdue={null}
+          noDue={!isAction && dueFilter !== "with" ? noDueTasks : null}
           days={listDays}
           today={TODAY}
           pastOpen={pastOpen}
           onTogglePast={() => setPastOpen((o) => !o)}
           onOpen={openDetail}
+          foldPast={!isAction}
+          showEmptyDays={isAction ? false : undefined}
         />
-      ) : tab === "status" && shownView === "cards" ? (
+      ) : listTab && shownView === "cards" ? (
         <TaskCardGrid groups={groups} onOpen={openDetail} />
-      ) : tab === "status" && shownView === "calendar" ? (
+      ) : listTab && shownView === "calendar" ? (
         <TaskCalendar groups={groups} today={TODAY} onOpen={openDetail} />
       ) : tab === "drafts" && !drafts.length ? (
         <div className="flex justify-center py-[var(--sp-space-6x)]"><EmptyTasks /></div>

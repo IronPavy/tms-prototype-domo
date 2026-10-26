@@ -17,6 +17,8 @@ export interface ModalProps {
   onBack?: () => void;
   /** heading under the title (Roboto Medium, text label) */
   subtitle?: ReactNode;
+  /** title size: "h1" (SP3 Title/H1, default) or "h3" (Title/H3 Group Title — smaller, e.g. task detail) */
+  titleSize?: "h1" | "h3";
 }
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -24,7 +26,7 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), textar
 /** Dialog on a dimmed backdrop: surface/default · radius 3x · shadow M · padding 5x · gap 4x.
     Header = Title H1 (text title) + close button; body scrolls; footer sticks to the bottom.
     aria-modal, focus trap, Esc closes, focus returns to the opener. Full width on narrow screens. */
-export function Modal({ title, onClose, footer, children, width, minWidth, onBack, subtitle }: ModalProps) {
+export function Modal({ title, onClose, footer, children, width, minWidth, onBack, subtitle, titleSize = "h1" }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -78,7 +80,7 @@ export function Modal({ title, onClose, footer, children, width, minWidth, onBac
                   <Icon name="left" size={24} color="var(--sp-icon)" />
                 </button>
               )}
-              <h2 className="sp-title-h1 m-0 text-sp-text-title">{title}</h2>
+              <h2 className={`${titleSize === "h3" ? "sp-title-h3" : "sp-title-h1"} m-0 text-sp-text-title`}>{title}</h2>
             </div>
             {subtitle && <div className="flex items-center gap-[var(--sp-space-2x)] sp-text-medium text-sp-text-label">{subtitle}</div>}
           </div>

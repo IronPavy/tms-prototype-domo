@@ -4,7 +4,7 @@ import {
   HeaderNavbar, SidebarNavigation, Button, PageHeader, WeekPicker, CalendarWeek, StatCard,
   DateRangePicker, CalendarRange, MenuListItem, MultiSelectDropdown, TextField, Switch, FormField, Toast,
   StatusChip, Link, Panel, AttentionList, DonutChart, BarChart, Tooltip, ScrollArea,
-  ProgressBar, StatusDot, ShiftGroup, SubmissionList, TeamBreakdown, UpcomingList,
+  ProgressBar, StatusDot, ShiftGroup, CompletedTaskList, TeamBreakdown, UpcomingList,
   Breadcrumb, TabBar, FilterPill, SearchField, SegmentedControl, DueDateChip,
   type IconName, type StatTone,
 } from "@/design-system";
@@ -302,19 +302,20 @@ export default function StyleguidePage() {
               <ShiftGroup
                 title="Individual"
                 tasks={[
-                  { id: "1", state: "done", time: "07:30", title: "Cold room check – Split", person: "Florian Ade", doneAt: "07:42" },
-                  { id: "2", state: "late", time: "10:00", title: "Terrace opening – Split", person: "Ruzica Vucic" },
+                  { id: "1", state: "done", time: "07:30", title: "Cold room check", person: "Florian Ade", doneAt: "07:42" },
+                  { id: "2", state: "late", time: "10:00", title: "Terrace opening", person: "Ruzica Vucic" },
                   { id: "3", state: "upcoming", time: "14:00", title: "Restock restrooms", person: "Kim Fehrmann" },
                 ]}
               />
             </div>
           </Specimen>
-          <Specimen name="SubmissionList (SubmissionRow)" spec="form tile (info / error) · title · person · time · Status Chip OK (success) / Deviation (error)">
+          <Specimen name="CompletedTaskList (CompletedTaskRow)" spec="success tile with the solution-type icon · task · person · time · Status Chip (Abhaken / Anhang / Kamera)">
             <div className="w-[min(480px,100%)] bg-white rounded-[var(--sp-radius-2x)]">
-              <SubmissionList
+              <CompletedTaskList
                 items={[
-                  { id: "1", title: "Cold room temperature check", person: "Florian Ade", when: "Today 07:42", result: "ok" },
-                  { id: "2", title: "Coffee machine cleaning", person: "Ruzica Vucic", when: "Yesterday 22:31", result: "deviation" },
+                  { id: "1", title: "Kühlhaus-Temperatur prüfen – morgens", person: "Tobias Aurenz", when: "Heute 06:34", proof: "attachment" },
+                  { id: "2", title: "Gastraum & Eingang reinigen", person: "Selin Erden", when: "Gestern 09:48", proof: "photo" },
+                  { id: "3", title: "Shop öffnen & Kasse einrichten", person: "Josipa Maksimovic", when: "Heute 05:41", proof: "check" },
                 ]}
               />
             </div>
@@ -408,7 +409,7 @@ export default function StyleguidePage() {
             <div className="h-56">
               <MultiSelectDropdown
                 label="Location" icon="pin" allLabel="All locations" value={sgMulti} onChange={setSgMulti}
-                options={[{ id: "a", label: "Makarska" }, { id: "b", label: "Split" }, { id: "c", label: "Zagreb" }]}
+                options={[{ id: "a", label: "Frankfurt" }, { id: "b", label: "München" }, { id: "c", label: "Hamburg" }]}
               />
             </div>
           </Specimen>

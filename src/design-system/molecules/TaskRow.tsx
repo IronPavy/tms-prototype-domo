@@ -9,9 +9,22 @@ import type { Tone } from "../utils/tones";
 
 export type TaskStatus = "done" | "open" | "overdue";
 /** solution type — how the task is completed */
-export type TaskProof = "form" | "check" | "photo" | "attachment";
+export type TaskProof = "check" | "photo" | "attachment";
 
-export interface SubtaskItem { id: string; title: string; done?: boolean }
+/** a file the employee attached to a task or subtask (photo or document) */
+export interface TaskFile {
+  id: string;
+  name: string;
+  /** bytes */
+  size: number;
+  kind: "image" | "pdf" | "other";
+  url: string;
+  /** who attached it + when ("25.10.26, 14:20") */
+  by: string;
+  at: string;
+}
+
+export interface SubtaskItem { id: string; title: string; done?: boolean; /** how it is solved (default check) */ proof?: "check" | "photo" | "attachment"; /** file of a done photo / attachment subtask */ file?: TaskFile }
 
 export interface TaskRowData {
   id: string;
@@ -45,8 +58,8 @@ export interface TaskRowData {
   /** completion time for done tasks — "done 06:37" under the chip */
   doneAt?: string;
   proof: TaskProof;
-  /** submitted form reported a deviation */
-  deviation?: boolean;
+  /** files the employee attached (attachment / camera tasks) */
+  files?: TaskFile[];
   status: TaskStatus;
   comments?: number;
 }
@@ -60,7 +73,6 @@ export const TASK_STATUS: Record<TaskStatus, { label: string; icon: IconName; to
 
 /** solution type → Sophis icon (same set as the task cards) */
 export const SOLUTION: Record<TaskProof, { label: string; icon: IconName }> = {
-  form: { label: "Formular", icon: "form" },
   check: { label: "Abhaken", icon: "check_circle" },
   photo: { label: "Kamera", icon: "camera" },
   attachment: { label: "Anhang", icon: "attachment" },
@@ -84,7 +96,24 @@ export function isLate(task: TaskRowData, now = new Date()) {
   return !!at && now > at && at.toDateString() === now.toDateString();
 }
 
-const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
+export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
+
+/** The due-date pill of a task: status colour + status icon (check · folder · warning), late = red text + clock icon,
+    tooltip with the status in words (done: "Erledigt am … von …"). Used by the list row and the task detail. */
+export function TaskDueChip({ task }: { task: TaskRowData }) {
+  const st = TASK_STATUS[task.status];
+  const late = isLate(task);
+  const tip = late
+    ? "Verspätet"
+    : task.status === "done" && task.doneAt && task.doneBy
+      ? `Erledigt am ${task.due.date}, ${task.doneAt} von ${task.doneBy}`
+      : st.label;
+  return (
+    <IconHint label={tip} type={late ? "error" : "normal"} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
+      <DueDateChip date={task.due.date} time={task.due.time} tone={st.tone} icon={late ? "clock" : STATUS_ICON[task.status]} late={late} />
+    </IconHint>
+  );
+}
 
 /** up to 2 label tags (each cut at 30 characters, full name as tooltip when cut); more → "+N" with all names as tooltip */
 function Tags({ tags }: { tags: string[] }) {
@@ -114,14 +143,8 @@ function Tags({ tags }: { tags: string[] }) {
 export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => void }) {
   const st = TASK_STATUS[task.status];
   const sol = SOLUTION[task.proof];
-  const late = isLate(task);
   const subs = task.subtaskItems ?? [];
   const subsDone = subs.filter((s) => s.done).length;
-  const statusTip = late
-    ? "Verspätet"
-    : task.status === "done" && task.doneAt && task.doneBy
-      ? `Erledigt am ${task.due.date}, ${task.doneAt} von ${task.doneBy}`
-      : st.label;
   return (
     <div
       role="button"
@@ -161,9 +184,7 @@ export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => vo
         {task.noDue ? (
           <span className="sp-text-standard text-sp-text-placeholder" aria-label="Ohne Fälligkeit">—</span>
         ) : (
-          <IconHint label={statusTip} type={late ? "error" : "normal"} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
-            <DueDateChip date={task.due.date} time={task.due.time} tone={st.tone} icon={late ? "clock" : STATUS_ICON[task.status]} late={late} />
-          </IconHint>
+          <TaskDueChip task={task} />
         )}
       </span>
 
@@ -176,15 +197,14 @@ export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => vo
         )}
       </span>
 
-      {/* solution type — icon only, name in the tooltip */}
+      {/* solution type — icon only, name in the tooltip; a task with subtasks is a normal task: no solution type */}
       <span className="flex">
-        <IconHint
-          label={task.deviation ? `${sol.label} · Abweichung` : sol.label}
-          type={task.deviation ? "error" : "normal"}
+        {!subs.length && <IconHint
+          label={sol.label}
           className="size-8 rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]"
         >
-          <Icon name={sol.icon} size={20} color={task.deviation ? "var(--sp-danger-on-surface)" : "var(--sp-icon)"} />
-        </IconHint>
+          <Icon name={sol.icon} size={20} color="var(--sp-icon)" />
+        </IconHint>}
       </span>
     </div>
   );

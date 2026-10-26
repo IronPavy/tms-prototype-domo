@@ -1,8 +1,9 @@
-import type { AttentionItem, BarDatum, IconName, NavSection, ShiftTask, StatTone, Submission, TaskGroup, TaskRowData, TeamRow, TeamSegmentDef, UpcomingItem,
+import type { AttentionItem, BarDatum, IconName, NavSection, ShiftTask, StatTone, TaskGroup, TaskRowData, TeamRow, TeamSegmentDef, UpcomingItem,
 } from "@/design-system";
 import {
   addDays, addMonths, diffDays, isoWeek, sameDay, sameRange, startOfDay, startOfWeek, type DateRange,
 } from "@/design-system/utils/date";
+import { SUBTASK_FILES, TASK_FILES, makeFile } from "./mockFiles";
 
 /** Prototype "today" — real date, so the period picker starts on the current week. */
 export const TODAY = new Date();
@@ -22,10 +23,10 @@ export const ORG_GROUPS = [
 
 /** `weight` = share of the company's tasks (sums to 1) — scales the KPI numbers when a scope is selected */
 export const LOCATIONS = [
-  { id: "makarska", label: "Makarska", group: "a", weight: 0.4 },
-  { id: "split",    label: "Split",    group: "a", weight: 0.3 },
-  { id: "zagreb",   label: "Zagreb",   group: "b", weight: 0.2 },
-  { id: "rijeka",   label: "Rijeka",   group: "b", weight: 0.1 },
+  { id: "frankfurt", label: "Frankfurt", group: "a", weight: 0.4 },
+  { id: "muenchen",  label: "München",   group: "a", weight: 0.3 },
+  { id: "hamburg",   label: "Hamburg",   group: "b", weight: 0.2 },
+  { id: "koeln",     label: "Köln",      group: "b", weight: 0.1 },
 ];
 
 /** Page scope picked in the header dropdowns — an empty list = all */
@@ -54,7 +55,6 @@ export const NAV_SECTIONS: NavSection[] = [
     children: [
       { id: "tasks/dashboard", label: "Übersicht" },
       { id: "tasks/tasks", label: "Aufgaben" },
-      { id: "tasks/forms", label: "Formulare" },
       { id: "tasks/reports", label: "Berichte" },
     ],
   },
@@ -125,29 +125,29 @@ export function statsForRange(range: DateRange, scope: Scope = ALL_SCOPE, create
 export interface Person { id: string; label: string; team: string; location: string }
 
 export const PEOPLE: Person[] = [
-  { id: "p1",  label: "Ana Grgic",         team: "Küche",      location: "makarska" },
-  { id: "p2",  label: "Tobias Aurenz",     team: "Küche",      location: "makarska" },
-  { id: "p3",  label: "Marija Vrdoljak",   team: "Küche",      location: "makarska" },
-  { id: "p4",  label: "Florian Ade",       team: "Küche",      location: "split" },
-  { id: "p5",  label: "Josipa Maksimovic", team: "Service",      location: "zagreb" },
-  { id: "p6",  label: "Ruzica Vucic",      team: "Service",      location: "split" },
-  { id: "p7",  label: "Kristina Barac",    team: "Service",      location: "rijeka" },
-  { id: "p8",  label: "Celine Wagner",     team: "Service",      location: "zagreb" },
-  { id: "p9",  label: "Kim Fehrmann",      team: "Housekeeping", location: "rijeka" },
-  { id: "p10", label: "Selin Erden",       team: "Housekeeping", location: "split" },
+  { id: "p1",  label: "Ana Grgic",         team: "Küche",     location: "muenchen" },
+  { id: "p2",  label: "Tobias Aurenz",     team: "Küche",     location: "muenchen" },
+  { id: "p3",  label: "Marija Vrdoljak",   team: "Küche",     location: "hamburg" },
+  { id: "p4",  label: "Florian Ade",       team: "Küche",     location: "koeln" },
+  { id: "p5",  label: "Josipa Maksimovic", team: "Shop",      location: "frankfurt" },
+  { id: "p6",  label: "Ruzica Vucic",      team: "Service",   location: "hamburg" },
+  { id: "p7",  label: "Kristina Barac",    team: "Service",   location: "muenchen" },
+  { id: "p8",  label: "Celine Wagner",     team: "Shop",      location: "frankfurt" },
+  { id: "p9",  label: "Kim Fehrmann",      team: "Reinigung", location: "frankfurt" },
+  { id: "p10", label: "Selin Erden",       team: "Reinigung", location: "muenchen" },
 ];
 
 /** shifts from the duty roster, with the person on duty today */
 export const SHIFTS = [
-  { id: "s1", label: "Frühschicht · Küche", person: "Tobias Aurenz",     location: "makarska" },
-  { id: "s2", label: "Spätschicht · Küche", person: "Tobias Aurenz",     location: "makarska" },
-  { id: "s3", label: "Frühschicht · Service", person: "Josipa Maksimovic", location: "zagreb" },
-  { id: "s4", label: "Abschlussschicht · Service", person: "Kristina Barac",    location: "rijeka" },
+  { id: "s1", label: "Frühschicht · Küche", person: "Tobias Aurenz",     location: "muenchen" },
+  { id: "s2", label: "Spätschicht · Küche", person: "Tobias Aurenz",     location: "muenchen" },
+  { id: "s3", label: "Frühschicht · Shop", person: "Josipa Maksimovic", location: "frankfurt" },
+  { id: "s4", label: "Abschlussschicht · Service", person: "Ruzica Vucic", location: "hamburg" },
 ];
 
 const TEAM_LIST = [
   { id: "team-all", label: "Alle Mitarbeitende" }, { id: "team-kitchen", label: "Küche" },
-  { id: "team-service", label: "Service" }, { id: "team-house", label: "Housekeeping" },
+  { id: "team-service", label: "Service" }, { id: "team-shop", label: "Shop" }, { id: "team-house", label: "Reinigung" },
 ];
 
 /** People, teams (with head count) and shifts inside the page scope — the Recipient picker options */
@@ -187,57 +187,61 @@ export interface DashboardAttentionItem extends AttentionItem {
 }
 
 /** Colour + icon come from the KPI card the item belongs to, so rows always match the cards:
-    Overdue (incl. deviations) = red / warning. */
+    Overdue = red / warning. */
 function attention(kpi: "overdue", item: Omit<DashboardAttentionItem, "kpi" | "tone" | "icon">): DashboardAttentionItem {
   const card = STATUSES.find((s) => s.key === kpi)!;
   return { ...item, kpi, tone: card.tone, icon: card.icon };
 }
 
-/** Sorted by urgency: deviations → overdue (oldest first).
-    Status text = card label; deviations keep their own text but belong to the red Overdue card. */
+/** Sorted by urgency: overdue, oldest first. Status text = card label. */
 export const ATTENTION_ITEMS: DashboardAttentionItem[] = [
-  attention("overdue", { id: "a1", location: "makarska", status: "Abweichung, keine Maßnahme", title: "Kühlraumkontrolle – morgens", meta: `Kühlraum 2: 7,6 °C · ${at(0, "06:34")} · Tobias Aurenz`, actionLabel: "Maßnahme" }),
-  attention("overdue", { id: "a2", location: "makarska", status: "Überfällig",              title: "Fritteuse grundreinigen",          meta: `Überfällig seit ${at(-3, "22:00")} · Florian Ade`,        actionLabel: "Öffnen" }),
-  attention("overdue", { id: "a3", location: "split", status: "Überfällig",              title: "Hygieneschulung (Video)",  meta: `Überfällig seit ${at(-1, "18:00")} · Selin Erden`,        actionLabel: "Öffnen" }),
-  attention("overdue", { id: "a4", location: "zagreb", status: "Überfällig",              title: "Kühlschrank-Temperaturprotokoll",    meta: `Überfällig seit ${at(0, "08:00")} · Tobias Aurenz`,       actionLabel: "Öffnen" }),
-  attention("overdue", { id: "a5", location: "split", status: "Überfällig",              title: "Terrasse öffnen – Split",   meta: `Überfällig seit ${at(0, "10:00")} · Ruzica Vucic`,        actionLabel: "Öffnen" }),
-  attention("overdue", { id: "a6", location: "zagreb", status: "Überfällig",              title: "Terrasse öffnen",           meta: `Überfällig seit ${at(0, "10:30")} · Josipa Maksimovic`,   actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a1", location: "koeln",     status: "Überfällig", title: "Fritteuse grundreinigen",                           meta: `Überfällig seit ${at(-3, "22:00")} · Florian Ade`,      actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a2", location: "muenchen",  status: "Überfällig", title: "Hygieneschulung: Teilnahmebescheinigung hochladen", meta: `Überfällig seit ${at(-1, "18:00")} · Selin Erden`,      actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a3", location: "frankfurt", status: "Überfällig", title: "Zapfsäulen & Tankplatz kontrollieren",              meta: `Überfällig seit ${at(0, "06:30")} · Kim Fehrmann`,      actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a4", location: "muenchen",  status: "Überfällig", title: "Kühlhaus-Temperatur prüfen – morgens",              meta: `Überfällig seit ${at(0, "06:30")} · Tobias Aurenz`,     actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a5", location: "hamburg",   status: "Überfällig", title: "Kuchenvitrine: Temperatur & Etiketten prüfen",      meta: `Überfällig seit ${at(0, "08:00")} · Marija Vrdoljak`,   actionLabel: "Öffnen" }),
+  attention("overdue", { id: "a6", location: "muenchen",  status: "Überfällig", title: "Terrasse öffnen",                                   meta: `Überfällig seit ${at(0, "10:30")} · Kristina Barac`,    actionLabel: "Öffnen" }),
 ];
 
 /* ─── Today (shift plan) ─────────────────────────────────────── */
 
 export interface ShiftGroupData { id: string; title: string; tasks: (ShiftTask & { location: string })[] }
 
-/** Today's tasks grouped by shift (reference screenshot). */
+/** Today's tasks grouped by shift. */
 export const TODAY_SHIFTS: ShiftGroupData[] = [
   { id: "s1", title: "Frühschicht · Küche", tasks: [
-    { id: "t1", location: "makarska", state: "done", time: "06:30", title: "Kühlraumkontrolle – morgens", person: "Tobias Aurenz", doneAt: "06:34" },
+    { id: "t1", location: "muenchen", state: "done", time: "06:30", title: "Kühlhaus-Temperatur prüfen – morgens", person: "Tobias Aurenz", doneAt: "06:34" },
   ] },
   { id: "s2", title: "Spätschicht · Küche", tasks: [
-    { id: "t2", location: "makarska", state: "upcoming", time: "21:00", title: "Kühlraumkontrolle – abends", person: "Tobias Aurenz" },
+    { id: "t2", location: "muenchen", state: "upcoming", time: "21:00", title: "Kühlhaus-Temperatur prüfen – abends", person: "Tobias Aurenz" },
   ] },
-  { id: "s3", title: "Frühschicht · Service", tasks: [
-    { id: "t3", location: "zagreb", state: "late", time: "10:30", title: "Terrasse öffnen", person: "Josipa Maksimovic" },
+  { id: "s3", title: "Frühschicht · Shop", tasks: [
+    { id: "t3", location: "frankfurt", state: "done", time: "05:30", title: "Shop öffnen & Kasse einrichten", person: "Josipa Maksimovic", doneAt: "05:41" },
+    { id: "t4", location: "frankfurt", state: "done", time: "07:30", title: "Lieferschein Backwaren prüfen", person: "Josipa Maksimovic", doneAt: "07:52" },
   ] },
   { id: "s4", title: "Einzeln", tasks: [
-    { id: "t4", location: "split", state: "done", time: "07:30", title: "Kühlraumkontrolle – Split", person: "Florian Ade", doneAt: "07:42" },
-    { id: "t5", location: "split", state: "late", time: "10:00", title: "Terrasse öffnen – Split", person: "Ruzica Vucic" },
-    { id: "t6", location: "rijeka", state: "upcoming", time: "14:00", title: "WC auffüllen", person: "Kim Fehrmann" },
-    { id: "t7", location: "split", state: "upcoming", time: "15:00", title: "WC auffüllen – Split", person: "Selin Erden" },
+    { id: "t5", location: "frankfurt", state: "late", time: "06:30", title: "Zapfsäulen & Tankplatz kontrollieren", person: "Kim Fehrmann" },
+    { id: "t6", location: "hamburg", state: "late", time: "08:00", title: "Kuchenvitrine: Temperatur & Etiketten prüfen", person: "Marija Vrdoljak" },
+    { id: "t7", location: "muenchen", state: "late", time: "10:30", title: "Terrasse öffnen", person: "Kristina Barac" },
+    { id: "t8", location: "frankfurt", state: "upcoming", time: "14:00", title: "Waschstraße & Staubsaugerplätze reinigen", person: "Kim Fehrmann" },
+    { id: "t9", location: "frankfurt", state: "upcoming", time: "22:00", title: "Kassenabschluss (Z-Bon)", person: "Celine Wagner" },
   ] },
 ];
 
-/* ─── Latest form submissions ────────────────────────────────── */
+/* ─── Recently completed ─────────────────────────────────────── */
 
-export const SUBMISSIONS: (Submission & { location: string })[] = [
-  { id: "f1", location: "split", title: "Kühlraumtemperatur-Kontrolle", person: "Florian Ade",     when: "Today 07:42",     result: "ok" },
-  { id: "f2", location: "makarska", title: "Kühlraumtemperatur-Kontrolle", person: "Tobias Aurenz",   when: "Today 06:34",     result: "deviation" },
-  { id: "f3", location: "makarska", title: "Kaffeemaschinen-Reinigung",     person: "Ruzica Vucic",    when: "Yesterday 22:31", result: "deviation" },
-  { id: "f4", location: "makarska", title: "Kühlraumtemperatur-Kontrolle", person: "Marija Vrdoljak", when: "Yesterday 21:21", result: "ok" },
-  { id: "f5", location: "split", title: "Kühlraumtemperatur-Kontrolle", person: "Florian Ade",     when: "Yesterday 07:57", result: "ok" },
-  { id: "f6", location: "zagreb", title: "Kühlraumtemperatur-Kontrolle", person: "Ana Grgic",       when: "Yesterday 06:56", result: "ok" },
-  { id: "f7", location: "rijeka", title: "Bar-Inventur",         person: "Ana Grgic",       when: "Yesterday 01:12", result: "ok" },
-  { id: "f8", location: "makarska", title: "Fritteusenöl-Kontrolle",             person: "Kim Fehrmann",    when: "Mon 20:05",       result: "ok" },
+export interface RecentDone { id: string; location: string; title: string; person: string; day: 0 | -1; time: string; proof: TaskRowData["proof"] }
+
+/** Latest completed tasks (what the employees handed in), newest first. */
+export const RECENT_DONE: RecentDone[] = [
+  { id: "r1", location: "frankfurt", title: "Lieferschein Backwaren prüfen",        person: "Josipa Maksimovic", day: 0,  time: "07:52", proof: "attachment" },
+  { id: "r2", location: "hamburg",   title: "Milchlieferung: Lieferschein ablegen", person: "Marija Vrdoljak",   day: 0,  time: "07:12", proof: "attachment" },
+  { id: "r3", location: "muenchen",  title: "Kühlhaus-Temperatur prüfen – morgens", person: "Tobias Aurenz",     day: 0,  time: "06:34", proof: "attachment" },
+  { id: "r4", location: "frankfurt", title: "Shop öffnen & Kasse einrichten",       person: "Josipa Maksimovic", day: 0,  time: "05:41", proof: "check" },
+  { id: "r5", location: "frankfurt", title: "Kassenabschluss (Z-Bon)",              person: "Celine Wagner",     day: -1, time: "22:14", proof: "attachment" },
+  { id: "r6", location: "hamburg",   title: "Getränke-Inventur Bar",                person: "Marija Vrdoljak",   day: -1, time: "22:48", proof: "attachment" },
+  { id: "r7", location: "muenchen",  title: "Gastraum & Eingang reinigen",          person: "Selin Erden",       day: -1, time: "09:48", proof: "photo" },
+  { id: "r8", location: "frankfurt", title: "Waschstraße & Staubsaugerplätze reinigen", person: "Kim Fehrmann",  day: -1, time: "14:22", proof: "photo" },
 ];
 
 /* ─── By team ────────────────────────────────────────────────── */
@@ -253,9 +257,9 @@ export const TEAM_SEGMENTS: TeamSegmentDef[] = DUE_KEYS.map((k) => {
 /** share of each status per team */
 const TEAM_WEIGHTS: { id: string; team: string; w: Record<(typeof DUE_KEYS)[number], number> }[] = [
   { id: "kitchen", team: "Küche",      w: { done: 0.4,  overdue: 0.15 } },
-  { id: "service", team: "Service",      w: { done: 0.25, overdue: 0.2 } },
-  { id: "house",   team: "Housekeeping", w: { done: 0.2,  overdue: 0.5 } },
-  { id: "bar",     team: "Bar",          w: { done: 0.15, overdue: 0.15 } },
+  { id: "service", team: "Service",    w: { done: 0.25, overdue: 0.2 } },
+  { id: "house",   team: "Reinigung",  w: { done: 0.2,  overdue: 0.5 } },
+  { id: "shop",    team: "Shop",       w: { done: 0.15, overdue: 0.15 } },
 ];
 
 /** split n by weights, largest remainder — the parts always sum to n */
@@ -288,12 +292,12 @@ export function teamsForRange(range: DateRange, scope: Scope = ALL_SCOPE): TeamR
 /* ─── Coming up (next 7 days, without daily routines) ────────── */
 
 export const UPCOMING: (UpcomingItem & { location: string })[] = [
-  { id: "u1", location: "makarska", date: addDays(TODAY, 1), title: "Brühgruppendichtung bestellen",     meta: "Kristina Barac · 17:00",            repeat: "Einmalig" },
-  { id: "u2", location: "split", date: addDays(TODAY, 2), title: "Einweisung Fluchtwege",     meta: "Alle Mitarbeitende · 18:00",                 repeat: "Einmalig", progress: { done: 5, total: 10 } },
-  { id: "u3", location: "zagreb", date: addDays(TODAY, 5), title: "Monatliche Grundreinigung Lager", meta: "Küche · 15:00",                  repeat: "Monatlich", recurring: true },
-  { id: "u4", location: "makarska", date: addDays(TODAY, 5), title: "Kaffeemaschine reinigen",      meta: "Kristina Barac · 22:30",            repeat: "Wöchentlich",  recurring: true },
-  { id: "u5", location: "rijeka", date: addDays(TODAY, 6), title: "Feuerlöscher-Prüfung",   meta: "Housekeeping · 09:00",              repeat: "Monatlich", recurring: true },
-  { id: "u6", location: "split", date: addDays(TODAY, 7), title: "Menüverkostung – Herbst",     meta: "Küche, Service · 16:00",          repeat: "Einmalig" },
+  { id: "u1", location: "hamburg",   date: addDays(TODAY, 1), title: "Ersatzdichtung für Siebträger bestellen",           meta: "Ruzica Vucic · 17:00",              repeat: "Einmalig" },
+  { id: "u2", location: "muenchen",  date: addDays(TODAY, 2), title: "Einweisung Fluchtwege: Unterschriftenliste",         meta: "Alle Mitarbeitende · 18:00",        repeat: "Einmalig", progress: { done: 5, total: 10 } },
+  { id: "u3", location: "koeln",     date: addDays(TODAY, 5), title: "Monatliche Grundreinigung Lager",                    meta: "Küche · 15:00",                     repeat: "Monatlich", recurring: true },
+  { id: "u4", location: "hamburg",   date: addDays(TODAY, 5), title: "Kaffeemaschine entkalken",                           meta: "Ruzica Vucic · 22:30",              repeat: "Wöchentlich",  recurring: true },
+  { id: "u5", location: "frankfurt", date: addDays(TODAY, 6), title: "Feuerlöscher-Prüfung",                               meta: "Reinigung · 09:00",                 repeat: "Monatlich", recurring: true },
+  { id: "u6", location: "muenchen",  date: addDays(TODAY, 7), title: "Menüverkostung – Herbst",                            meta: "Küche, Service · 16:00",            repeat: "Einmalig" },
 ];
 
 /* ─── Tasks list ─────────────────────────────────────────────── */
@@ -305,46 +309,52 @@ interface TaskTemplate {
   subtasks?: number;
   /** weekday (0 = Sun) for weekly tasks */
   weekday?: number;
-  /** fixed location label — otherwise by title ("… Split") or rotated per day */
+  /** fixed location label — otherwise the location of the first person */
   loc?: string;
 }
 
+/* Sample operator: Tankstelle + Shop (Frankfurt), Restaurants (München, Köln), Café & Bar (Hamburg).
+   Every task has ONE solution type for the employee: check · attachment (document) · camera (photo) — or subtasks (a normal task). */
 const DAILY: TaskTemplate[] = [
-  { key: "crm", title: "Kühlraumkontrolle – morgens", high: true, time: "06:30", tags: ["HACCP"], proof: "form",
-    people: [["Tobias Aurenz", "Frühschicht · Küche"], ["Ana Grgic", "Frühschicht · Küche"], ["Marija Vrdoljak", "Frühschicht · Küche"]] },
-  { key: "crs", title: "Kühlraumkontrolle – Split", high: true, time: "07:30", tags: ["HACCP"], proof: "form", people: [["Florian Ade", "Küche"]] },
-  { key: "tos", title: "Terrasse öffnen – Split", time: "10:00", tags: ["Service"], proof: "check", people: [["Ruzica Vucic", "Service"]] },
-  { key: "to", title: "Terrasse öffnen", time: "10:30", tags: ["Service"], proof: "check",
-    people: [["Josipa Maksimovic", "Frühschicht · Service"], ["Celine Wagner", "Frühschicht · Service"]] },
-  { key: "rr", title: "WC auffüllen", time: "14:00", tags: ["Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Housekeeping"]] },
-  { key: "rrs", subtasks: 4, title: "WC auffüllen – Split", time: "15:00", tags: ["Reinigung"], proof: "check", people: [["Selin Erden", "Housekeeping"]] },
-  { key: "cre", title: "Kühlraumkontrolle – abends", high: true, time: "21:00", tags: ["HACCP"], proof: "form",
-    people: [["Tobias Aurenz", "Spätschicht · Küche"], ["Marija Vrdoljak", "Spätschicht · Küche"]] },
+  // Frankfurt · Tankstelle & Shop
+  { key: "sho", title: "Shop öffnen & Kasse einrichten", time: "05:30", tags: ["Kasse", "Service"], proof: "check",
+    people: [["Josipa Maksimovic", "Frühschicht · Shop"], ["Celine Wagner", "Frühschicht · Shop"]] },
+  { key: "zap", title: "Zapfsäulen & Tankplatz kontrollieren", high: true, time: "06:30", tags: ["Sicherheit", "Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Reinigung"]] },
+  { key: "bak", title: "Lieferschein Backwaren prüfen", time: "07:30", tags: ["Wareneingang"], proof: "attachment", people: [["Josipa Maksimovic", "Frühschicht · Shop"]] },
+  { key: "prc", title: "Preisauszeichnung an den Zapfsäulen abgleichen", time: "08:30", tags: ["Kasse"], proof: "check", people: [["Celine Wagner", "Frühschicht · Shop"]] },
+  { key: "wcf", subtasks: 4, title: "WC-Kontrolle Tankstelle", time: "10:00", tags: ["Reinigung"], proof: "check", people: [["Kim Fehrmann", "Reinigung"]] },
+  { key: "wsh", title: "Waschstraße & Staubsaugerplätze reinigen", time: "14:00", tags: ["Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Reinigung"]] },
+  { key: "kas", title: "Kassenabschluss (Z-Bon)", time: "22:00", tags: ["Kasse"], proof: "attachment", people: [["Celine Wagner", "Spätschicht · Shop"], ["Josipa Maksimovic", "Spätschicht · Shop"]] },
+  // München · Restaurant
+  { key: "kk1", title: "Kühlhaus-Temperatur prüfen – morgens", high: true, time: "06:30", tags: ["HACCP"], proof: "attachment",
+    people: [["Tobias Aurenz", "Frühschicht · Küche"], ["Ana Grgic", "Frühschicht · Küche"]] },
+  { key: "gas", title: "Gastraum & Eingang reinigen", time: "09:30", tags: ["Reinigung"], proof: "photo", people: [["Selin Erden", "Reinigung"]] },
+  { key: "mue", title: "Müll entsorgen", time: "09:00", tags: ["Reinigung"], proof: "check", people: [["Selin Erden", "Reinigung"]] },
+  { key: "ter", title: "Terrasse öffnen", time: "10:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Frühschicht · Service"]] },
+  { key: "all", title: "Allergen-Aushang der Tageskarte prüfen", time: "11:00", tags: ["HACCP"], proof: "photo", people: [["Ana Grgic", "Küche"]] },
+  { key: "bev", title: "Getränkelager auffüllen", time: "11:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Frühschicht · Service"]] },
+  { key: "get", title: "Getränkelieferung annehmen & Lieferschein ablegen", time: "12:30", tags: ["Wareneingang"], proof: "attachment", people: [["Kristina Barac", "Frühschicht · Service"]] },
+  { key: "kk2", title: "Kühlhaus-Temperatur prüfen – abends", high: true, time: "21:00", tags: ["HACCP"], proof: "attachment",
+    people: [["Tobias Aurenz", "Spätschicht · Küche"], ["Ana Grgic", "Spätschicht · Küche"]] },
+  // Hamburg · Café & Bar
+  { key: "mil", title: "Milchlieferung: Lieferschein ablegen", time: "07:00", tags: ["Wareneingang"], proof: "attachment", people: [["Marija Vrdoljak", "Küche"]] },
+  { key: "vit", title: "Kuchenvitrine: Temperatur & Etiketten prüfen", time: "08:00", tags: ["HACCP"], proof: "photo", people: [["Marija Vrdoljak", "Küche"]] },
+  { key: "zp2", title: "Zapfanlage spülen", time: "22:30", tags: ["Reinigung"], proof: "check", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
+  { key: "bar", title: "Bar & Theke für den Abschluss reinigen", time: "23:00", tags: ["Reinigung"], proof: "photo", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
+  // Köln · Restaurant
+  { key: "oel", title: "Frittieröl prüfen (Testprotokoll)", time: "14:30", tags: ["HACCP"], proof: "attachment", people: [["Florian Ade", "Küche"]] },
 ];
-DAILY.push(
-  { key: "ent", title: "Eingangsbereich reinigen", time: "08:00", tags: ["Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Housekeeping"]] },
-  { key: "bev", title: "Getränkelager auffüllen", time: "11:00", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Service"]] },
-  { key: "all", title: "Allergenliste prüfen", time: "12:00", tags: ["HACCP"], proof: "form", people: [["Ana Grgic", "Küche"]] },
-  { key: "kas", title: "Kassenabschluss", time: "23:00", tags: ["Service"], proof: "attachment", people: [["Josipa Maksimovic", "Service"]] },
-  { key: "mue", title: "Müll entsorgen", time: "09:00", tags: ["Reinigung"], proof: "check", people: [["Selin Erden", "Housekeeping"]] },
-  { key: "kue", title: "Kühlschrank ordnen", time: "13:00", tags: ["HACCP"], proof: "photo", people: [["Florian Ade", "Küche"]] },
-  { key: "ter", title: "Terrasse reinigen", time: "16:00", tags: ["Reinigung"], proof: "photo", people: [["Celine Wagner", "Service"]] },
-  { key: "bes", title: "Bestellung prüfen", time: "17:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Service"]] },
-);
 const WEEKLY: TaskTemplate[] = [
-  { key: "ccm", subtasks: 5, title: "Kaffeemaschine reinigen", time: "22:30", weekday: 1, tags: ["Reinigung", "HACCP", "Pflicht"], proof: "form", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
+  { key: "ccm", subtasks: 5, title: "Kaffeemaschine entkalken", time: "22:30", weekday: 1, tags: ["Reinigung", "HACCP", "Pflicht"], proof: "check", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
 ];
 /** one-time tasks, placed relative to TODAY */
 const ONE_TIME: (TaskTemplate & { day: number; status?: TaskRowData["status"]; comments?: number })[] = [
-  { key: "dcf", subtasks: 6, title: "Fritteuse grundreinigen", high: true, day: -3, time: "22:00", tags: ["Reinigung"], proof: "check", people: [["Florian Ade", "Küche"]], loc: "Makarska", status: "overdue", comments: 4 },
-  { key: "ht", title: "Hygieneschulung (Video)", day: -1, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Selin Erden", "Housekeeping"]], loc: "Split", status: "overdue" },
-  { key: "bic", title: "Bar-Inventur", day: -1, time: "22:00", tags: ["Inventur"], proof: "check", people: [["Ana Grgic", "Küche"]], loc: "Rijeka", status: "done", comments: 1 },
-  { key: "obs", title: "Brühgruppendichtung bestellen", day: 1, time: "17:00", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Service"]] },
-  { key: "erb", title: "Einweisung Fluchtwege", day: 2, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Kristina Barac", "Alle Mitarbeitende"]] },
+  { key: "dcf", subtasks: 6, title: "Fritteuse grundreinigen", high: true, day: -3, time: "22:00", tags: ["Reinigung"], proof: "check", people: [["Florian Ade", "Küche"]], status: "overdue", comments: 4 },
+  { key: "ht", title: "Hygieneschulung: Teilnahmebescheinigung hochladen", day: -1, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Selin Erden", "Reinigung"]], status: "overdue" },
+  { key: "bic", title: "Getränke-Inventur Bar", day: -1, time: "22:00", tags: ["Inventur"], proof: "attachment", people: [["Marija Vrdoljak", "Küche"]], status: "done", comments: 1 },
+  { key: "obs", title: "Ersatzdichtung für Siebträger bestellen", day: 1, time: "17:00", tags: ["Service"], proof: "check", people: [["Ruzica Vucic", "Service"]] },
+  { key: "erb", title: "Einweisung Fluchtwege: Unterschriftenliste", day: 2, time: "18:00", tags: ["Schulung"], proof: "attachment", people: [["Kristina Barac", "Alle Mitarbeitende"]], loc: "München" },
 ];
-
-/** locations rotated over the days for tasks without a fixed one */
-const LOC_CYCLE = ["Makarska", "Makarska", "Zagreb", "Makarska", "Rijeka", "Zagreb"];
 
 const WD_FMT = new Intl.DateTimeFormat("de-DE", { weekday: "short" });
 const WD = { format: (d: Date) => WD_FMT.format(d).replace(".", "") };
@@ -352,18 +362,18 @@ const ddmm = (d: Date) => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.`;
 const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const plus = (t: string, n: number) => { const v = mins(t) + n; return `${pad(Math.floor(v / 60) % 24)}:${pad(v % 60)}`; };
 
-/** status of one occurrence: past days done (one deviation each), today by the clock, future open */
-function occurrence(t: TaskTemplate, d: Date, seed: number): Pick<TaskRowData, "status" | "doneAt" | "deviation"> {
+/** status of one occurrence: past days done, today by the clock, future open */
+function occurrence(t: TaskTemplate, d: Date, seed: number): Pick<TaskRowData, "status" | "doneAt"> {
   const offset = diffDays(TODAY, d);
   const now = TODAY.getHours() * 60 + TODAY.getMinutes();
   if (offset > 0 || (offset === 0 && mins(t.time) > now)) return { status: "open" };
+  if (offset < 0 && !t.high && (seed * 3) % 11 === 0) return { status: "overdue" }; // missed on an earlier day, still open
   if (offset === 0 && !t.high && seed % 2 === 0) return { status: "overdue" }; // missed today
   if (offset === 0 && seed % 3 === 0) return { status: "open" }; // late: time passed, day not over
   const late = (seed * 7) % 13;
   return {
     status: "done",
     doneAt: plus(t.time, late),
-    deviation: t.proof === "form" && seed % 5 === 0,
   };
 }
 
@@ -380,54 +390,71 @@ function created(t: TaskTemplate & { day?: number }): Pick<TaskRowData, "created
 
 /** short descriptions of the sample tasks (searchable) */
 const DESCRIPTIONS: Record<string, string> = {
-  crm: "Temperatur im Kühlraum 1 prüfen und im Formular protokollieren. Abweichungen sofort melden.",
-  crs: "Kühlraum im Standort Split kontrollieren und Temperatur eintragen.",
-  tos: "Terrasse aufschließen, Tische und Stühle stellen, Sonnenschirme öffnen.",
-  to: "Terrasse öffnen: Möbel stellen, Heizpilze prüfen, Speisekarten auslegen.",
-  rr: "Toiletten kontrollieren, Seife und Papier auffüllen und ein Foto machen.",
-  rrs: "Sanitärräume auffüllen und reinigen, danach alle Schritte abhaken.",
-  cre: "Abendliche Temperaturkontrolle des Kühlraums und Protokoll im Formular.",
-  ccm: "Kaffeemaschine entkalken, Brühgruppe reinigen und Probelauf durchführen.",
-  dcf: "Fritteuse vollständig entleeren, reinigen und mit frischem Öl befüllen.",
-  ht: "Hygieneschulung als Video ansehen und die Teilnahme bestätigen.",
-  bic: "Bestand an der Bar zählen und die Liste hochladen.",
-  obs: "Neue Dichtung für die Brühgruppe bestellen.",
-  erb: "Mitarbeitende über die Fluchtwege und Sammelplätze informieren.",
-  ent: "Eingangsbereich, Fußmatten und Glastüren reinigen und ein Foto machen.",
-  bev: "Getränkelager kontrollieren und fehlende Getränke nachfüllen.",
+  sho: "Shop aufschließen, Kasse mit Wechselgeld einrichten, Kaffeemaschine und Backstation einschalten.",
+  zap: "Zapfsäulen, Tankplatz und Ölbinder kontrollieren und ein Foto der Zapfsäulen machen. Auffälligkeiten sofort melden.",
+  bak: "Lieferschein der Backwaren mit der Lieferung abgleichen und als Dokument hochladen.",
+  prc: "Preise an den Zapfsäulen mit dem Preismast und dem Kassensystem abgleichen.",
+  wcf: "Tankstellen-WC kontrollieren, nachfüllen und reinigen. Danach alle Schritte erledigen.",
+  wsh: "Waschplatz und Staubsaugerplätze reinigen und ein Foto machen.",
+  kas: "Tagesabschluss der Kasse erstellen und den Z-Bon hochladen. Kassendifferenzen sofort melden.",
+  kk1: "Temperatur im Kühlhaus messen und das Protokoll hochladen. Abweichungen über 7 °C sofort melden.",
+  kk2: "Abendliche Temperaturkontrolle der Kühlräume. Protokoll als Dokument hochladen.",
+  gas: "Gastraum und Eingangsbereich reinigen, Tische abwischen und ein Foto nach der Reinigung machen.",
   mue: "Müllbehälter leeren und die Entsorgungsstelle säubern.",
-  kue: "Kühlschrank ordnen und Etiketten kontrollieren.",
-  ter: "Terrasse kehren und Tische abwischen.",
-  bes: "Eingegangene Bestellung auf Vollständigkeit prüfen.",
-  all: "Allergenliste mit der aktuellen Speisekarte abgleichen.",
-  kas: "Tagesabschluss der Kasse erstellen und den Beleg hochladen.",
-  nd1: "Lagerraum aufräumen, Regale beschriften und abgelaufene Ware aussortieren.",
-  nd2: "Speisekarte für den Herbst aktualisieren und neue Preise eintragen.",
-  nd3: "Notfallplan auf Aktualität prüfen und Kontaktliste erneuern.",
+  ter: "Terrasse aufschließen, Tische und Stühle stellen, Sonnenschirme öffnen und Heizpilze prüfen.",
+  all: "Aushang mit den Allergenen der Tageskarte prüfen und ein Foto des Aushangs machen.",
+  bev: "Getränkelager kontrollieren und fehlende Getränke nachfüllen.",
+  get: "Getränkelieferung annehmen, auf Vollständigkeit prüfen und den Lieferschein hochladen.",
+  mil: "Milchlieferung kontrollieren (Kühlkette) und den Lieferschein ablegen.",
+  vit: "Temperatur und Preisschilder der Kuchenvitrine prüfen und ein Foto machen.",
+  zp2: "Zapfanlage mit Reinigungslösung spülen und mit klarem Wasser nachspülen.",
+  bar: "Bar und Theke für den Abschluss reinigen und ein Foto der sauberen Theke machen.",
+  oel: "Ölqualität der Fritteusen messen und das Testprotokoll hochladen.",
+  ccm: "Kaffeemaschine entkalken, Brühgruppe reinigen und einen Probelauf durchführen.",
+  dcf: "Fritteuse vollständig entleeren, reinigen und mit frischem Öl befüllen.",
+  ht: "Hygieneschulung abschließen und die Teilnahmebescheinigung hochladen.",
+  bic: "Bestand an der Bar zählen und die Inventurliste hochladen.",
+  obs: "Neue Dichtung für den Siebträger bestellen.",
+  erb: "Mitarbeitende über Fluchtwege und Sammelplätze einweisen und die Unterschriftenliste hochladen.",
+  nd1: "Lagerraum aufräumen, Regale beschriften und abgelaufene Ware aussortieren. Foto vom aufgeräumten Lager.",
+  nd2: "Speisekarte für den Herbst aktualisieren und neue Preise eintragen. Entwurf hochladen.",
+  nd3: "Notfallplan auf Aktualität prüfen, Kontaktliste erneuern und den neuen Plan hochladen.",
 };
-const DONE_BY = ["Ana Grgic", "Tobias Aurenz", "Marija Vrdoljak", "Florian Ade"];
 
-/** names of the sub-steps of the templates that have subtasks */
-const SUBTASK_NAMES: Record<string, string[]> = {
-  dcf: ["Drain oil", "Clean basin", "Replace filter", "Refill oil", "Wipe surfaces", "Check thermostat"],
-  ccm: ["Descale boiler", "Clean brew group", "Wash drip tray", "Wipe steam wand", "Test run"],
-  rrs: ["Restock soap", "Restock paper towels", "Empty bins", "Wipe sinks"],
+type SubProof = NonNullable<NonNullable<TaskRowData["subtaskItems"]>[number]["proof"]>;
+/** names of the sub-steps (+ how each is solved) of the templates that have subtasks */
+const SUBTASK_NAMES: Record<string, [string, SubProof][]> = {
+  wcf: [["Seife auffüllen", "check"], ["Papier auffüllen", "check"], ["Mülleimer leeren", "check"], ["Waschbecken & Boden reinigen (Foto)", "photo"]],
+  ccm: [["Entkalker ansetzen", "check"], ["Brühgruppe reinigen (Foto)", "photo"], ["Auffangschale spülen", "check"], ["Dampflanze reinigen", "check"], ["Probelauf-Protokoll hochladen", "attachment"]],
+  dcf: [["Öl ablassen", "check"], ["Becken reinigen (Foto)", "photo"], ["Filter wechseln (Foto)", "photo"], ["Frisches Öl einfüllen", "check"], ["Flächen abwischen", "check"], ["Thermostat messen (Messprotokoll)", "attachment"]],
 };
-function subtaskItemsFor(t: TaskTemplate, status: TaskRowData["status"]): TaskRowData["subtaskItems"] {
+function subtaskItemsFor(t: TaskTemplate, status: TaskRowData["status"], d: Date, person: string, time: string): TaskRowData["subtaskItems"] {
   if (!t.subtasks) return undefined;
-  const names = SUBTASK_NAMES[t.key] ?? Array.from({ length: t.subtasks }, (_, i) => `Step ${i + 1}`);
-  return names.slice(0, t.subtasks).map((title, i) => ({ id: `${t.key}-s${i}`, title, done: status === "done" }));
+  const names = SUBTASK_NAMES[t.key] ?? Array.from({ length: t.subtasks }, (_, i): [string, "check"] => [`Schritt ${i + 1}`, "check"]);
+  return names.slice(0, t.subtasks).map(([title, proof], i) => {
+    const fileId = SUBTASK_FILES[t.key]?.[i];
+    return {
+      id: `${t.key}-s${i}`, title, proof, done: status === "done",
+      file: status === "done" && fileId && proof !== "check" ? makeFile(fileId, d, time, person, i) : undefined,
+    };
+  });
 }
+
+const locOf = (person: string) => LOCATIONS.find((l) => l.id === PEOPLE.find((p) => p.label === person)?.location)?.label;
 
 function makeRow(t: TaskTemplate, d: Date, extra: Partial<TaskRowData>, seed: number): TaskRowData {
   const [person, team] = t.people[seed % t.people.length];
+  const status = extra.status ?? "open";
+  const doneTime = extra.doneAt ?? plus(t.time || "12:00", 12);
+  const fileIds = status === "done" && t.proof !== "check" && !t.subtasks ? TASK_FILES[t.key] ?? [] : [];
   return {
     id: `${t.key}-${d.toDateString()}`, title: t.title, high: t.high, tags: t.tags, proof: t.proof, person, team,
-    location: t.loc ?? (t.title.includes("Split") ? "Split" : LOC_CYCLE[seed % LOC_CYCLE.length]), subtasks: t.subtasks,
+    location: t.loc ?? locOf(person), subtasks: t.subtasks,
     ...created(t),
     description: DESCRIPTIONS[t.key],
-    doneBy: (extra.status ?? "open") === "done" ? DONE_BY[(seed + t.key.length) % DONE_BY.length] : undefined,
-    subtaskItems: subtaskItemsFor(t, extra.status ?? "open"),
+    doneBy: status === "done" ? person : undefined,
+    subtaskItems: subtaskItemsFor(t, status, d, person, doneTime),
+    files: fileIds.length ? fileIds.map((id, i) => makeFile(id, d, plus(doneTime, i * 2), person, i)) : undefined,
     recurring: t.weekday !== undefined || DAILY.includes(t),
     schedule: t.weekday !== undefined ? `Wöchentlich · ${WD.format(d)} ${t.time}` : DAILY.includes(t) ? `Täglich ${t.time}` : "Einmalig",
     due: { date: `${ddmm(d)}${String(d.getFullYear()).slice(2)}`, time: t.time }, status: "open", ...extra,
@@ -436,9 +463,9 @@ function makeRow(t: TaskTemplate, d: Date, extra: Partial<TaskRowData>, seed: nu
 
 /** tasks without a due date — never listed under a day, always in their own section "Ohne Fälligkeit" */
 const NO_DUE: TaskTemplate[] = [
-  { key: "nd1", title: "Lagerraum aufräumen", time: "", tags: ["Reinigung"], proof: "check", loc: "Makarska", people: [["Ana Grgic", "Küche"]] },
-  { key: "nd2", title: "Speisekarte aktualisieren", time: "", tags: ["Service"], proof: "attachment", loc: "Split", people: [["Kristina Barac", "Service"]] },
-  { key: "nd3", title: "Notfallplan prüfen", high: true, time: "", tags: ["Schulung"], proof: "form", loc: "Rijeka", people: [["Florian Ade", "Küche"]] },
+  { key: "nd1", title: "Lagerraum aufräumen", time: "", tags: ["Reinigung"], proof: "photo", people: [["Ana Grgic", "Küche"]] },
+  { key: "nd2", title: "Speisekarte Herbst aktualisieren", time: "", tags: ["Service"], proof: "attachment", people: [["Kristina Barac", "Service"]] },
+  { key: "nd3", title: "Notfallplan aktualisieren", high: true, time: "", tags: ["Schulung"], proof: "attachment", people: [["Florian Ade", "Küche"]] },
 ];
 const noDueTasks = (): TaskRowData[] => NO_DUE.map((t) => ({
   ...makeRow(t, startOfDay(TODAY), { status: "open" }, 0), id: `nodue-${t.key}`, noDue: true, recurring: false, schedule: "Einmalig · ohne Fälligkeit", due: { date: "", time: "" }, status: "open",
@@ -459,14 +486,7 @@ export const dueDateKey = (t: TaskRowData) => { const [d, m, y] = t.due.date.spl
 /** Task groups for the period: "Overdue – still open" (before today) first, then one group per day. */
 export function taskGroupsForRange(range: DateRange): TaskGroup[] {
   const groups: TaskGroup[] = [];
-  const overdue: TaskRowData[] = [];
   const row = makeRow;
-
-  for (const o of ONE_TIME) {
-    const d = addDays(startOfDay(TODAY), o.day);
-    if (o.status === "overdue") overdue.push(row(o, d, { status: "overdue", comments: o.comments }, 0));
-  }
-  if (overdue.length) groups.push({ id: "overdue", label: "Überfällig – noch offen", kind: "overdue", tasks: overdue });
 
   for (let d = startOfDay(range.start); diffDays(d, range.end) >= 0; d = addDays(d, 1)) {
     const seed = d.getDate() + d.getMonth() * 31;
@@ -474,7 +494,7 @@ export function taskGroupsForRange(range: DateRange): TaskGroup[] {
     DAILY.forEach((t, i) => tasks.push(row(t, d, occurrence(t, d, seed + i), seed + i)));
     for (const t of WEEKLY) if (d.getDay() === t.weekday) tasks.push(row(t, d, occurrence(t, d, seed), seed));
     for (const o of ONE_TIME) {
-      if (o.status === "overdue" || !sameDay(addDays(startOfDay(TODAY), o.day), d)) continue;
+      if (!sameDay(addDays(startOfDay(TODAY), o.day), d)) continue;
       tasks.push(row(o, d, { status: o.status ?? "open", doneAt: o.status === "done" ? plus(o.time, 48) : undefined, comments: o.comments }, 0));
     }
     tasks.sort(compareDue);
@@ -533,6 +553,10 @@ export function taskFromUpcoming(u: UpcomingItem & { location: string }): TaskRo
   });
 }
 
+
+export function taskFromRecent(r: RecentDone): TaskRowData {
+  return detailTask({ title: r.title, date: addDays(startOfDay(TODAY), r.day), person: r.person, location: locLabel(r.location), status: "done", doneAt: r.time });
+}
 
 /* ─── Completion over time ───────────────────────────────────── */
 

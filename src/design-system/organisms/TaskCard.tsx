@@ -7,7 +7,6 @@ import { TASK_STATUS, type TaskRowData } from "../molecules/TaskRow";
 
 /** solution type → Sophis icon (top-right of the card) */
 const SOLUTION: Record<TaskRowData["proof"], { label: string; icon: IconName }> = {
-  form: { label: "Form", icon: "form" },
   photo: { label: "Camera", icon: "camera" },
   attachment: { label: "Attachment", icon: "attachment" },
   check: { label: "Check", icon: "check_circle" },
@@ -27,7 +26,7 @@ export interface TaskCardProps {
       whose Tooltip shows "Daily 15:00" / "Weekly · Mon 22:30" / "One-time"
     · footer (old MetaRow): user icon + creator · clock icon + created "12.12.24, 17:15 Uhr" — Roboto Small in text subtitle,
       icons in icon colour; wraps the timestamp onto a second line when narrow
-    · solution type icon top-right (form · camera · attachment · check_circle, 16px brand/on/surface, Tooltip "Solution: …");
+    · solution type icon top-right (camera · attachment · check_circle, 16px brand/on/surface, Tooltip "Solution: …");
       tasks with subtasks show no icon (their solution is per subtask)
     · "more_vert" menu button pinned bottom-right.
     Card = SP3 "Card" (497:3227) Filled, Outlined, Interactive: surface/raised · 1px border (line) · radius 3x ·
