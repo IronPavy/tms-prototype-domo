@@ -130,8 +130,8 @@ export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFi
                 </div>
                 {isDone ? (
                   <IconAction
-                    label={kind === "check" ? "Erledigt – klicken zum Wiederöffnen" : "Erledigt"}
-                    icon="check_circle_filled"
+                    label={kind === "check" ? "Erledigt – klicken zum Wiederöffnen" : `Erledigt · ${a.noun}`}
+                    icon={kind === "check" ? "check_circle_filled" : a.icon}
                     color="var(--sp-success-on-surface)"
                     disabled={kind !== "check"}
                     onClick={() => onToggle(s.id)}

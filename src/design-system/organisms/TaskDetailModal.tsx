@@ -111,11 +111,17 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
               </span>
             </DetailRow>
             {task.location && <DetailRow label="Standort">{task.location}</DetailRow>}
-            {!subs.length && (
-              <DetailRow label="Erledigt per">
+            <DetailRow label="Erledigt per">
+              {subs.length ? (
+                <span className="inline-flex flex-wrap items-center gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-1x)]">
+                  {(["check", "photo", "attachment"] as const).filter((k) => subs.some((x) => (x.proof ?? "check") === k)).map((k) => (
+                    <span key={k} className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name={SOLUTION[k].icon} color="var(--sp-icon)" />{SOLUTION[k].label}</span>
+                  ))}
+                </span>
+              ) : (
                 <span className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name={sol.icon} color="var(--sp-icon)" />{sol.label}</span>
-              </DetailRow>
-            )}
+              )}
+            </DetailRow>
             {task.high && (
               <DetailRow label="Priorität">
                 <span className="inline-flex items-center gap-[var(--sp-space-2x)]"><PriorityIndicator />Hoch</span>

@@ -9,7 +9,7 @@ export interface ModalProps {
   /** sticky button toolbar */
   footer?: ReactNode;
   children: ReactNode;
-  /** max width, px — default `--tms-modal-max-width` (672) */
+  /** max width, px — default `--tms-modal-max-width` (672); the dialog hugs its content up to this width */
   width?: number;
   /** min width, px — default `--tms-modal-min-width` (360); never wider than the screen */
   minWidth?: number;
@@ -62,10 +62,10 @@ export function Modal({ title, onClose, footer, children, width, minWidth, onBac
         aria-modal="true"
         aria-label={title}
         style={{
-          maxWidth: width ?? "var(--tms-modal-max-width)",
+          maxWidth: `min(${width ? width + "px" : "var(--tms-modal-max-width)"}, 100%)`,
           minWidth: `min(${minWidth ?? "var(--tms-modal-min-width)"}${minWidth ? "px" : ""}, 100%)`,
         }}
-        className="flex flex-col w-full max-h-full bg-sp-surface-default rounded-[var(--sp-radius-3x)] shadow-[var(--sp-shadow-m)] overflow-hidden"
+        className="flex flex-col w-fit max-h-full bg-sp-surface-default rounded-[var(--sp-radius-3x)] shadow-[var(--sp-shadow-m)] overflow-hidden"
       >
         <div className="flex items-start justify-between gap-[var(--sp-space-4x)] px-[var(--sp-space-5x)] pt-[var(--sp-space-5x)] pb-[var(--sp-space-3x)]">
           <div className="flex flex-col gap-[var(--sp-space-3x)] min-w-0">
