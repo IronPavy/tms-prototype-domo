@@ -50,6 +50,7 @@ export * from "./molecules/EmptyTasks";
 export * from "./molecules/ReadOnlyDropdown";
 export * from "./molecules/DetailRow";
 export * from "./molecules/RowDeleteButton";
+export * from "./molecules/ScrollTopButton";
 export * from "./molecules/TaskRowMenu";
 export * from "./molecules/TextHint";
 export * from "./molecules/HistoryTimeline";

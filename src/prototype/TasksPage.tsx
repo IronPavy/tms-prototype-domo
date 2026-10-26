@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Button, DateRangePicker, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
+  Button, DateRangePicker, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { TODAY, compareDue, dueDateKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
@@ -30,6 +30,7 @@ const VIEWS = [
    Status pills use the same numbers, labels, icons and tones as the Dashboard KPI cards. */
 // `onNavigate` (in-app navigation) is passed by PrototypePage; unused since the breadcrumb was removed
 export default function TasksPage(_props: { onNavigate?: (id: string) => void }) {
+  const pageRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("status");
   const { range, setRange, pendingStatus, setPendingStatus } = usePeriod();
   // search: `draft` is what is typed, `query` the applied search (Enter, at least 3 characters)
@@ -108,7 +109,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const shownQuery = query.trim().length > 40 ? `${query.trim().slice(0, 40)}…` : query.trim();
 
   return (
-    <div className="flex flex-col gap-[var(--sp-space-6x)] p-[var(--sp-space-6x)]">
+    <div ref={pageRef} className="flex flex-col gap-[var(--sp-space-6x)] p-[var(--sp-space-6x)]">
       <PageHeader
         title="Aufgaben"
         primaryAction={<Button variant="primary" icon="plus" label="Neue Aufgabe" onClick={() => openNewTask()} />}
@@ -132,7 +133,10 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             { id: "drafts", label: "Entwürfe", count: drafts.length },
           ]}
         />
+      </div>
 
+      {/* fixed while scrolling: filters · view switch · search */}
+      <div className="sticky top-0 z-20 -mx-[var(--sp-space-6x)] -mt-[var(--sp-space-4x)] px-[var(--sp-space-6x)] py-[var(--sp-space-3x)] flex flex-col gap-[var(--sp-space-4x)] bg-sp-surface-default shadow-[0_1px_0_var(--sp-border-line)]">
         {/* status filter (toggles, all on by default) · type · view */}
         <div className="flex flex-wrap items-center gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-2x)]">
           {/* status pills belong to the Status tab only — Library and Drafts have none */}
@@ -284,6 +288,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           }
         />
       )}
+      <ScrollTopButton anchorRef={pageRef} />
     </div>
   );
 }
