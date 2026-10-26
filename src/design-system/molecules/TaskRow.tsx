@@ -79,38 +79,20 @@ export const SOLUTION: Record<TaskProof, { label: string; icon: IconName }> = {
 };
 
 /** grid shared by the rows (and any header) — task · assignee · due · subtasks · solution */
-export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(160px,200px)_172px_48px_40px] items-center gap-x-[var(--sp-space-4x)]";
-
-const pad = (n: number) => String(n).padStart(2, "0");
-/** "08.10.26" + "06:30" / "16:00–17:00" → when the task is due (a range is due at its end); all-day → null */
-function dueMoment(due: { date: string; time: string }): Date | null {
-  const [d, m, y] = due.date.split(".").map(Number);
-  const t = due.time.match(/(\d{2}):(\d{2})\D*$/);
-  if (!d || !m || !y || !t) return null;
-  return new Date(2000 + y, m - 1, d, Number(t[1]), Number(t[2]));
-}
-/** late = recurring, still open, due time passed, but the day is not over yet */
-export function isLate(task: TaskRowData, now = new Date()) {
-  if (task.status !== "open" || !task.recurring || task.noDue) return false;
-  const at = dueMoment(task.due);
-  return !!at && now > at && at.toDateString() === now.toDateString();
-}
+export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(160px,200px)_172px_56px] items-center gap-x-[var(--sp-space-4x)]";
 
 export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
 
-/** The due-date pill of a task: status colour + status icon (check · folder · warning), late = red text + clock icon,
+/** The due-date pill of a task: status colour + status icon (check · folder · warning) — open = blue, overdue = red, done = green; text is never red;
     tooltip with the status in words (done: "Erledigt am … von …"). Used by the list row and the task detail. */
 export function TaskDueChip({ task }: { task: TaskRowData }) {
   const st = TASK_STATUS[task.status];
-  const late = isLate(task);
-  const tip = late
-    ? "Verspätet"
-    : task.status === "done" && task.doneAt && task.doneBy
-      ? `Erledigt am ${task.due.date}, ${task.doneAt} von ${task.doneBy}`
-      : st.label;
+  const tip = task.status === "done" && task.doneAt && task.doneBy
+    ? `Erledigt am ${task.due.date}, ${task.doneAt} von ${task.doneBy}`
+    : st.label;
   return (
-    <IconHint label={tip} type={late ? "error" : "normal"} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
-      <DueDateChip date={task.due.date} time={task.due.time} tone={st.tone} icon={late ? "clock" : STATUS_ICON[task.status]} late={late} />
+    <IconHint label={tip} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
+      <DueDateChip date={task.due.date} time={task.due.time} tone={st.tone} icon={STATUS_ICON[task.status]} />
     </IconHint>
   );
 }
@@ -138,7 +120,7 @@ function Tags({ tags }: { tags: string[] }) {
     overdue = 4px red bar on the left edge.
     Cells: title (Medium, one line, "…" + tooltip) + PriorityIndicator / schedule (repeat icon + Small label) + up to 2 label chips (+N) ·
     Colored Avatar + name (30 characters) / shift or group (Small label) ·
-    DueDateChip: status colour + status icon (check · folder · warning), late = red text + clock icon, tooltip with the status in words
+    DueDateChip: status colour + status icon (check · folder · warning), tooltip with the status in words
     (done: "Erledigt am … von …") · subtasks "2/5" with tooltip · solution type icon (20px) with Tooltip. */
 export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => void }) {
   const st = TASK_STATUS[task.status];
@@ -179,7 +161,7 @@ export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => vo
         </span>
       </span>
 
-      {/* due — pill in the status colour with the status icon; late = red text + clock; tooltip = status in words */}
+      {/* due — pill in the status colour with the status icon; tooltip = status in words */}
       <span className="flex">
         {task.noDue ? (
           <span className="sp-text-standard text-sp-text-placeholder" aria-label="Ohne Fälligkeit">—</span>
@@ -188,23 +170,21 @@ export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => vo
         )}
       </span>
 
-      {/* subtasks "2/5" */}
-      <span className="flex justify-end">
+      {/* last column, one under another: solution type icon · subtask count "0/4" (left-aligned) */}
+      <span className="flex flex-col items-start justify-center gap-[var(--sp-space-1x)]">
+        {!subs.length && (
+          <IconHint
+            label={sol.label}
+            className="size-8 rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]"
+          >
+            <Icon name={sol.icon} size={20} color="var(--sp-icon)" />
+          </IconHint>
+        )}
         {!!subs.length && (
           <IconHint label={`${subsDone} von ${subs.length} Unteraufgaben erledigt`} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
             <span className="sp-text-small text-sp-text-label tabular-nums">{subsDone}/{subs.length}</span>
           </IconHint>
         )}
-      </span>
-
-      {/* solution type — icon only, name in the tooltip; a task with subtasks is a normal task: no solution type */}
-      <span className="flex">
-        {!subs.length && <IconHint
-          label={sol.label}
-          className="size-8 rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]"
-        >
-          <Icon name={sol.icon} size={20} color="var(--sp-icon)" />
-        </IconHint>}
       </span>
     </div>
   );
