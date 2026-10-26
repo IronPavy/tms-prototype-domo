@@ -3,6 +3,8 @@ import { Icon, type IconName } from "../atoms/Icon";
 import { StatusChip } from "../atoms/StatusChip";
 import { DueDateChip } from "./DueDateChip";
 import { PriorityIndicator } from "./PriorityIndicator";
+import { RowDeleteButton } from "./RowDeleteButton";
+import type { TaskAction } from "./TaskRowMenu";
 import { TextHint } from "./TextHint";
 import { IconHint } from "./IconHint";
 import type { Tone } from "../utils/tones";
@@ -58,6 +60,12 @@ export interface TaskRowData {
   /** completion time for done tasks — "done 06:37" under the chip */
   doneAt?: string;
   proof: TaskProof;
+  /** Bibliothek entry (template): the detail shows no status / due date */
+  library?: boolean;
+  /** how often a template repeats */
+  frequency?: "daily" | "weekly" | "monthly" | "yearly" | "once";
+  /** who the task goes to: a person, a shift (name · group · location) or a whole group */
+  receiver?: { kind: "person" | "shift" | "team"; id: string; group: string; locationId: string; /** shift: starting letters + working hours */ code?: string; time?: string };
   /** files the employee attached (attachment / camera tasks) */
   files?: TaskFile[];
   status: TaskStatus;
@@ -79,7 +87,7 @@ export const SOLUTION: Record<TaskProof, { label: string; icon: IconName }> = {
 };
 
 /** grid shared by the rows (and any header) — task · assignee · due · subtasks · solution */
-export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(160px,200px)_172px_56px] items-center gap-x-[var(--sp-space-4x)]";
+export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_172px_56px_minmax(24px,120px)_1px_32px] items-center gap-x-[var(--sp-space-4x)]";
 
 export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
 
@@ -98,7 +106,7 @@ export function TaskDueChip({ task }: { task: TaskRowData }) {
 }
 
 /** up to 2 label tags (each cut at 30 characters, full name as tooltip when cut); more → "+N" with all names as tooltip */
-function Tags({ tags }: { tags: string[] }) {
+export function Tags({ tags }: { tags: string[] }) {
   const cut = (s: string) => (s.length > 30 ? `${s.slice(0, 30).trimEnd()}…` : s);
   const more = tags.slice(2);
   return (
@@ -122,7 +130,7 @@ function Tags({ tags }: { tags: string[] }) {
     Colored Avatar + name (30 characters) / shift or group (Small label) ·
     DueDateChip: status colour + status icon (check · folder · warning), tooltip with the status in words
     (done: "Erledigt am … von …") · subtasks "2/5" with tooltip · solution type icon (20px) with Tooltip. */
-export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => void }) {
+export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?: () => void; onAction?: (action: TaskAction) => void }) {
   const st = TASK_STATUS[task.status];
   const sol = SOLUTION[task.proof];
   const subs = task.subtaskItems ?? [];
@@ -186,6 +194,13 @@ export function TaskRow({ task, onOpen }: { task: TaskRowData; onOpen?: () => vo
           </IconHint>
         )}
       </span>
+
+      {/* divider: the delete icon is set apart from the data */}
+      <span aria-hidden />
+      <span aria-hidden className="w-px h-8 bg-sp-border-line" />
+
+      {/* delete icon (red on hover, tooltip, the host asks for confirmation) */}
+      {onAction ? <RowDeleteButton title={task.title} onClick={() => onAction("delete")} /> : <span />}
     </div>
   );
 }

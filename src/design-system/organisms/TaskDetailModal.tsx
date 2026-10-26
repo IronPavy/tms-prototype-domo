@@ -6,6 +6,7 @@ import { DetailRow } from "../molecules/DetailRow";
 import { HistoryTimeline, type HistoryEntry } from "../molecules/HistoryTimeline";
 import { Modal } from "../molecules/Modal";
 import { PriorityIndicator } from "../molecules/PriorityIndicator";
+import { ShiftPill } from "../molecules/ShiftPill";
 import { SOLUTION, TASK_STATUS, TaskDueChip, type TaskFile, type TaskRowData } from "../molecules/TaskRow";
 import { FilePreview } from "./FilePreview";
 import { SubtaskList, type SubFile } from "./SubtaskList";
@@ -48,11 +49,11 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
   const history: HistoryEntry[] = [
     { id: "created", title: `Erstellt von ${task.createdBy ?? "—"}`, meta: task.createdAt, state: "done" },
     ...extraHistory,
-    task.status === "done"
+    ...(task.library ? [] : [task.status === "done"
       ? { id: "state", title: task.doneBy ? `Erledigt von ${task.doneBy}` : "Erledigt", meta: `${task.due.date}, ${task.doneAt ?? task.due.time}`, state: "done" as const }
       : task.status === "overdue"
         ? { id: "state", title: "Noch nicht erledigt", meta: `Überfällig seit ${task.due.date}, ${task.due.time}`, state: "danger" as const }
-        : { id: "state", title: "Noch nicht erledigt", meta: task.noDue ? undefined : `Fällig ${task.due.date}, ${task.due.time}`, state: "pending" as const },
+        : { id: "state", title: "Noch nicht erledigt", meta: task.noDue ? undefined : `Fällig ${task.due.date}, ${task.due.time}`, state: "pending" as const }]),
   ];
 
   return (
@@ -64,7 +65,9 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
         minWidth={360}
         subtitle={
           <span className="flex flex-wrap items-center gap-[var(--sp-space-2x)]">
-            <StatusChip tone={st.tone} icon={st.icon} label={st.label} />
+            {task.library
+              ? <StatusChip tone="default" icon={task.recurring ? "repeat" : undefined} label={task.schedule.split(" · ")[0]} />
+              : <StatusChip tone={st.tone} icon={st.icon} label={st.label} />}
           </span>
         }
       >
@@ -73,18 +76,34 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
       {tab === "details" && (
         <div className="flex flex-col gap-[var(--sp-space-5x)] pb-[var(--sp-space-2x)]">
           <dl className="m-0 flex flex-col gap-[var(--sp-space-2x)]">
-            <DetailRow label="Zugewiesen an">
-              <span className="flex items-center gap-[var(--sp-space-2x)]">
-                <Avatar name={task.person} size={24} />
-                <span className="flex flex-col min-w-0">
-                  <span className="truncate">{task.person}</span>
-                  {task.team && <span className="sp-text-small text-sp-text-label truncate">{task.team}</span>}
+            {task.receiver && task.receiver.kind !== "person" ? (
+              <>
+                <DetailRow label={task.receiver.kind === "shift" ? "Schicht" : "Zugewiesen an"}>
+                  <span className="flex items-center gap-[var(--sp-space-2x)]">
+                    <span className="flex items-center justify-center shrink-0 size-6 rounded-[var(--sp-radius-2x)] bg-sp-neutral-fill-light"><Icon name={task.receiver.kind === "shift" ? "user_clock" : "user_group"} color="var(--sp-icon)" /></span>
+                    <span className="truncate">{task.person}</span>
+                    {task.receiver.kind === "shift" && task.receiver.code && <ShiftPill code={task.receiver.code} />}
+                    {task.receiver.kind === "shift" && task.receiver.time && <span className="sp-text-small text-sp-text-label tabular-nums">{task.receiver.time}</span>}
+                  </span>
+                </DetailRow>
+                <DetailRow label="Gruppe">{task.team}</DetailRow>
+              </>
+            ) : (
+              <DetailRow label="Zugewiesen an">
+                <span className="flex items-center gap-[var(--sp-space-2x)]">
+                  <Avatar name={task.person} size={24} />
+                  <span className="flex flex-col min-w-0">
+                    <span className="truncate">{task.person}</span>
+                    {task.team && <span className="sp-text-small text-sp-text-label truncate">{task.team}</span>}
+                  </span>
                 </span>
-              </span>
-            </DetailRow>
-            <DetailRow label="Fällig">
-              {task.noDue ? <span className="text-sp-text-label">Keine Fälligkeit</span> : <TaskDueChip task={task} />}
-            </DetailRow>
+              </DetailRow>
+            )}
+            {!task.library && (
+              <DetailRow label="Fällig">
+                {task.noDue ? <span className="text-sp-text-label">Keine Fälligkeit</span> : <TaskDueChip task={task} />}
+              </DetailRow>
+            )}
             <DetailRow label="Wiederholung">
               <span className="inline-flex items-center gap-[var(--sp-space-1x)]">
                 {task.recurring && <Icon name="repeat" color="var(--sp-icon)" />}
@@ -122,10 +141,24 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
           </section>
 
           {/* what the employee handed in */}
-          {!subs.length && task.proof !== "check" && (
+          {!task.library && !subs.length && task.proof !== "check" && (
             <TaskFiles kind={task.proof} files={task.files ?? []} person={task.person} onOpen={(i) => setViewer({ files: task.files ?? [], start: i })} />
           )}
-          {!!subs.length && (
+          {!!subs.length && task.library && (
+            <section aria-label="Unteraufgaben" className="flex flex-col gap-[var(--sp-space-2x)]">
+              <h3 className="m-0 sp-text-medium text-sp-text">Unteraufgaben <span className="sp-text-small text-sp-text-label tabular-nums">{subs.length}</span></h3>
+              <ol className="m-0 p-0 list-none bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-2x)]">
+                {subs.map((s, i) => (
+                  <li key={s.id} className={`flex items-center gap-[var(--sp-space-3x)] h-12 px-[var(--sp-space-3x)] ${i ? "border-0 border-t border-solid border-sp-neutral-fill-light" : ""}`}>
+                    <span aria-hidden className="flex items-center justify-center shrink-0 size-6 rounded-full border border-solid border-sp-neutral-border-light bg-sp-neutral-fill-light sp-text-small-medium tabular-nums text-sp-text">{i + 1}</span>
+                    <span className="flex-1 min-w-0 truncate sp-text-standard text-sp-text">{s.title}</span>
+                    <Icon name={SOLUTION[s.proof ?? "check"].icon} color="var(--sp-icon)" />
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+          {!!subs.length && !task.library && (
             <SubtaskList
               items={subs}
               done={subtaskDone}

@@ -138,12 +138,26 @@ export const PEOPLE: Person[] = [
 ];
 
 /** shifts from the duty roster, with the person on duty today */
-export const SHIFTS = [
+const SHIFT_DEFS = [
   { id: "s1", label: "Frühschicht · Küche", person: "Tobias Aurenz",     location: "muenchen" },
   { id: "s2", label: "Spätschicht · Küche", person: "Tobias Aurenz",     location: "muenchen" },
   { id: "s3", label: "Frühschicht · Shop", person: "Josipa Maksimovic", location: "frankfurt" },
   { id: "s4", label: "Abschlussschicht · Service", person: "Ruzica Vucic", location: "hamburg" },
+  { id: "s5", label: "Spätschicht · Shop", person: "Celine Wagner", location: "frankfurt" },
+  { id: "s6", label: "Frühschicht · Reinigung", person: "Kim Fehrmann", location: "frankfurt" },
+  { id: "s7", label: "Frühschicht · Service", person: "Kristina Barac", location: "muenchen" },
+  { id: "s8", label: "Frühschicht · Küche", person: "Florian Ade", location: "koeln" },
+  { id: "s9", label: "Frühschicht · Küche", person: "Marija Vrdoljak", location: "hamburg" },
 ];
+/** working hours by shift kind (first word of the name) */
+const SHIFT_HOURS: Record<string, string> = { "Frühschicht": "06:00–14:00", "Spätschicht": "14:00–22:00", "Abschlussschicht": "18:00–02:00" };
+/** group of a shift = the part after "·" in its name · code = first 3 letters of the shift ("Frü") · time = hours it works */
+export const SHIFTS = SHIFT_DEFS.map((s) => ({
+  ...s,
+  group: s.label.split(" · ")[1],
+  code: s.label.split(" · ")[0].slice(0, 3),
+  time: SHIFT_HOURS[s.label.split(" · ")[0]] ?? "",
+}));
 
 const TEAM_LIST = [
   { id: "team-all", label: "Alle Mitarbeitende" }, { id: "team-kitchen", label: "Küche" },
@@ -430,7 +444,7 @@ const DESCRIPTIONS: Record<string, string> = {
 
 type SubProof = NonNullable<NonNullable<TaskRowData["subtaskItems"]>[number]["proof"]>;
 /** names of the sub-steps (+ how each is solved) of the templates that have subtasks */
-const SUBTASK_NAMES: Record<string, [string, SubProof][]> = {
+export const SUBTASK_NAMES: Record<string, [string, SubProof][]> = {
   wcf: [["Seife auffüllen", "check"], ["Papier auffüllen", "check"], ["Mülleimer leeren", "check"], ["Waschbecken & Boden reinigen (Foto)", "photo"]],
   ccm: [["Entkalker ansetzen", "check"], ["Brühgruppe reinigen (Foto)", "photo"], ["Auffangschale spülen", "check"], ["Dampflanze reinigen", "check"], ["Probelauf-Protokoll hochladen", "attachment"]],
   sue: [["Kassenstand zählen", "check"], ["Zwischenabschluss (Z-Bon) hochladen", "attachment"], ["Zapfsäulen und Tankplatz (Foto)", "photo"], ["Übergabeprotokoll hochladen", "attachment"]],

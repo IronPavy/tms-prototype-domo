@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { StatusChip } from "../atoms/StatusChip";
 import { EmptyTasks } from "../molecules/EmptyTasks";
 import { TaskRow, type TaskRowData } from "../molecules/TaskRow";
+import type { TaskAction } from "../molecules/TaskRowMenu";
 
 export interface TaskGroup {
   id: string;
@@ -17,6 +18,7 @@ export interface TaskGroup {
 export interface TaskListProps {
   groups: TaskGroup[];
   onOpen?: (task: TaskRowData) => void;
+  onAction?: (action: TaskAction, task: TaskRowData) => void;
   emptyText?: string;
 }
 
@@ -24,7 +26,7 @@ export interface TaskListProps {
     · "TODAY" = Badge Notification (brand/fill/normal + on/normal, Small Medium) · count = neutral Badge Chip.
     Each group = SP3 "Card" Filled, not outlined (surface/raised, radius 3x — no border) holding TaskRows
     separated by a light 1px neutral/fill/light line, inset 4x. Scrolls horizontally inside the card below ~900px. */
-export function TaskList({ groups, onOpen, emptyText = "No tasks match the current filters." }: TaskListProps) {
+export function TaskList({ groups, onOpen, onAction, emptyText = "No tasks match the current filters." }: TaskListProps) {
   const visible = groups.filter((g) => g.tasks.length);
   if (!visible.length) {
     return (
@@ -45,11 +47,11 @@ export function TaskList({ groups, onOpen, emptyText = "No tasks match the curre
             <StatusChip tone={g.kind === "overdue" ? "error" : "default"} label={String(g.tasks.length)} />
           </h3>
           <div className="overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius-3x)]">
-            <div className="min-w-[900px]">
+            <div className="min-w-[1000px]">
               {g.tasks.map((t, i) => (
                 <Fragment key={t.id}>
                   {i > 0 && <hr className="m-0 mx-[var(--sp-space-4x)] border-0 border-t border-solid border-sp-neutral-fill-light" />}
-                  <TaskRow task={t} onOpen={() => onOpen?.(t)} />
+                  <TaskRow task={t} onOpen={() => onOpen?.(t)} onAction={onAction && ((a) => onAction(a, t))} />
                 </Fragment>
               ))}
             </div>

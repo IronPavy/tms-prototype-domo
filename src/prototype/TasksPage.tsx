@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Button, DateRangePicker, EmptyTasks, FilterPill, PageHeader, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
-  type TaskRowData,
+  Button, DateRangePicker, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
+  type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { TODAY, compareDue, dueDateKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
+import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
 import { useTasks, withCreatedTasks } from "./tasksStore";
 
@@ -50,7 +51,12 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const shownView = views.some((v) => v.id === view && !v.disabled) ? view : "list";
 
   const scope = useScope();
-  const { created, createdStats, drafts, openNewTask, deleteDraft, recipientNames, openDetail, withEdits } = useTasks();
+  const { created, createdStats, drafts, openNewTask, deleteDraft, recipientNames, openDetail, withEdits, withEditsList, taskAction } = useTasks();
+
+  // Bibliothek: every template ever created · filter by shift / employee / frequency (applied with "Anwenden")
+  const [libFilter, setLibFilter] = useState<LibraryFilterValue>({ selected: [], freq: [] });
+  const libTree = useMemo(() => ({ shifts: buildTree("shift"), employees: buildTree("employee") }), []);
+  const libBase = withEditsList(useMemo(() => libraryTasks(), [])).filter((t) => inScope(scope, t.location));
   const stats = statsForRange(range, scope, createdStats);
   const statuses = stats.filter((s) => s.key !== "all");
   // coming from a Dashboard KPI card: only that status is selected (Total / none = all); read once, then cleared
@@ -72,7 +78,11 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
     setQuery(v);
   };
   const clearSearch = () => { setDraft(""); setQuery(""); setTooShort(false); };
-  const resetAll = () => { setActive(new Set(statuses.map((s) => s.key))); setType("all"); setDueFilter("all"); clearSearch(); };
+  const libSel = useMemo(() => new Set(libFilter.selected), [libFilter]);
+  const libFreq = useMemo(() => new Set(libFilter.freq), [libFilter]);
+  const libTasks = libBase.filter((t) => searchMatch(t) && matchesLibraryFilter(t, libSel, libFreq));
+  const libFiltered = !!q || libFilter.selected.length > 0 || libFilter.freq.length > 0;
+  const resetAll = () => { setLibFilter({ selected: [], freq: [] }); setActive(new Set(statuses.map((s) => s.key))); setType("all"); setDueFilter("all"); clearSearch(); };
 
   // list: status pills · type · due · search applied to every group
   const matches = (t: TaskRowData) =>
@@ -118,7 +128,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           tabs={[
             { id: "status", label: "Status", count: totalShown },
             { id: "action", label: "Handlungsbedarf", count: actionCount, countTone: "error" },
-            { id: "library", label: "Bibliothek", count: 15 },
+            { id: "library", label: "Bibliothek", count: libBase.length },
             { id: "drafts", label: "Entwürfe", count: drafts.length },
           ]}
         />
@@ -151,6 +161,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             ))}
           </div>
           )}
+          {tab !== "library" && (<>
           <div className="flex items-center gap-[var(--sp-space-1x)]">
             <span className="sp-text-medium text-sp-text-label">Typ</span>
             <SegmentedControl label="Aufgabentyp" options={TYPES} value={type} onChange={setType} />
@@ -159,10 +170,13 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             <span className="sp-text-medium text-sp-text-label">Fälligkeit</span>
             <SegmentedControl label="Fälligkeit" options={DUE_OPTIONS} value={dueFilter} onChange={setDueFilter} />
           </div>
-          {/* view switch pushed to the right end of the row */}
-          <div className="ml-auto">
-            <SegmentedControl label="Ansicht" iconOnly options={views} value={shownView} onChange={setView} />
-          </div>
+          </>)}
+          {/* view switch at the right end of the filter row (Status, Handlungsbedarf, Entwürfe) */}
+          {tab !== "library" && (
+            <div className="ml-auto">
+              <SegmentedControl label="Ansicht" iconOnly options={views} value={shownView} onChange={setView} />
+            </div>
+          )}
         </div>
 
         {/* search (shrinks) */}
@@ -177,7 +191,14 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             placeholder="Aufgaben durchsuchen"
             className="w-full min-w-[200px] max-w-[300px]"
           />
+          {tab === "library" && <LibraryFilter shifts={libTree.shifts} employees={libTree.employees} frequencies={FREQUENCIES} value={libFilter} onApply={setLibFilter} />}
           {tooShort && <span role="alert" className="sp-text-small text-sp-danger-on-surface">Bitte mindestens 3 Zeichen eingeben und Enter drücken.</span>}
+          {/* Bibliothek: view switch at the right end of the search row */}
+          {tab === "library" && (
+            <div className="ml-auto">
+              <SegmentedControl label="Ansicht" iconOnly options={views} value={shownView} onChange={setView} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -207,8 +228,8 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           pastOpen={pastOpen}
           onTogglePast={() => setPastOpen((o) => !o)}
           onOpen={openDetail}
+          onAction={taskAction}
           foldPast={!isAction}
-          showEmptyDays={isAction ? false : undefined}
         />
       ) : listTab && shownView === "cards" ? (
         <TaskCardGrid groups={groups} onOpen={openDetail} />
@@ -250,10 +271,18 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           )) : <div className="flex justify-center py-[var(--sp-space-6x)]"><EmptyTasks /></div>}
         </div>
       ) : (
-        /* Library — no content designed yet */
-        <div className="flex justify-center py-[var(--sp-space-6x)]">
-          <EmptyTasks />
-        </div>
+        /* Bibliothek — all task templates, with the three-dot menu on every row */
+        <LibraryList
+          tasks={libTasks}
+          onOpen={openDetail}
+          onAction={taskAction}
+          empty={
+            <EmptyTasks
+              text={q ? `Keine Aufgaben für „${shownQuery}“ gefunden.` : "Keine Aufgaben gefunden."}
+              action={libFiltered ? <Button variant="primary" label="Zurücksetzen" onClick={resetAll} /> : undefined}
+            />
+          }
+        />
       )}
     </div>
   );

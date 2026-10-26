@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { NewTaskModal, TaskDetailModal, Toast, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type SubFile, type TaskGroup, type TaskRowData } from "@/design-system";
+import { Button, Modal, NewTaskModal, TaskDetailModal, Toast, type TaskAction, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type SubFile, type TaskGroup, type TaskRowData } from "@/design-system";
 import { addDays, sameDay, startOfDay } from "@/design-system/utils/date";
-import { ALL_SCOPE, LOCATIONS, PEOPLE, TODAY, compareDue, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
+import { ALL_SCOPE, LOCATIONS, PEOPLE, SHIFTS, TODAY, compareDue, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
 import { useScope } from "./scope";
 
 export interface CreatedTask { task: TaskRowData; day: Date }
@@ -18,6 +18,10 @@ interface TasksStore {
   openDetail: (task: TaskRowData) => void;
   /** apply edits made in the detail modal to the groups of the Tasks page */
   withEdits: (groups: TaskGroup[]) => TaskGroup[];
+  /** edits + deletions applied to a flat list (Bibliothek) */
+  withEditsList: (tasks: TaskRowData[]) => TaskRowData[];
+  /** three-dot menu of a list row: copy (new task from this one) · edit · delete (asks first) */
+  taskAction: (action: TaskAction, task: TaskRowData) => void;
   /** recipients as names, for the Drafts list */
   recipientNames: (ids: string[]) => string;
 }
@@ -65,7 +69,7 @@ function buildTask(v: NewTaskValues, id: string): CreatedTask {
 /** New task form values of an existing task (Edit task) */
 function valuesFromTask(t: TaskRowData): NewTaskValues {
   const base = emptyTask(TODAY);
-  const person = PEOPLE.find((p) => t.person.startsWith(p.label));
+  const person = PEOPLE.find((p) => t.person.startsWith(p.label)) ?? SHIFTS.find((s) => s.label === t.person);
   const [d, m, y] = t.due.date.split(".").map(Number);
   const repeat = !t.recurring ? "none" : t.schedule.startsWith("Täglich") ? "daily" : t.schedule.startsWith("Wöchentlich") ? "weekly" : t.schedule.startsWith("Monatlich") ? "monthly" : "yearly";
   const clock = /^\d{2}:\d{2}$/.test(t.due.time) ? t.due.time : "17:00";
@@ -101,12 +105,16 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   const scope = useScope();
   const [created, setCreated] = useState<CreatedTask[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>(SEED_DRAFTS);
-  const [modal, setModal] = useState<{ draftId?: string } | null>(null);
-  const [toast, setToast] = useState<{ id: string; message: string; undo?: () => void } | null>(null);
+  const [modal, setModal] = useState<{ draftId?: string; copy?: NewTaskValues } | null>(null);
+  const [deleted, setDeleted] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<TaskRowData | null>(null);
+  const [toast, setToast] = useState<{ id: string; message: string; undo?: () => void; noView?: boolean } | null>(null);
   const [counter, setCounter] = useState(1);
   // task detail modal
   const [detail, setDetail] = useState<TaskRowData | null>(null);
   const [editing, setEditing] = useState(false);
+  /** edit opened from the list menu (not from the detail) — closing it returns to the list */
+  const [editFromList, setEditFromList] = useState(false);
   const [subState, setSubState] = useState<Record<string, Record<string, { done: boolean; files?: SubFile[] }>>>({});
   const [events, setEvents] = useState<Record<string, HistoryEntry[]>>({});
   const [edits, setEdits] = useState<Record<string, Partial<TaskRowData>>>({});
@@ -125,10 +133,16 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
     drafts,
     openNewTask: (draftId) => setModal({ draftId }),
     deleteDraft: (id) => setDrafts((d) => d.filter((x) => x.id !== id)),
-    openDetail: (task) => { setEditing(false); setDetail(task); },
+    openDetail: (task) => { setEditing(false); setEditFromList(false); setDetail(task); },
+    taskAction: (action, task) => {
+      if (action === "copy") setModal({ copy: { ...valuesFromTask({ ...task, ...edits[task.id] }), title: `${(edits[task.id]?.title ?? task.title)} (Kopie)` } });
+      else if (action === "edit") { setDetail(task); setEditFromList(true); setEditing(true); }
+      else setConfirmDelete(task);
+    },
+    withEditsList: (tasks) => tasks.filter((t) => !deleted.includes(t.id)).map((t) => (edits[t.id] ? { ...t, ...edits[t.id] } : t)),
     withEdits: (groups) => groups.map((g) => ({
       ...g,
-      tasks: g.tasks.map((t0) => {
+      tasks: g.tasks.filter((t0) => !deleted.includes(t0.id)).map((t0) => {
         const t = edits[t0.id] ? { ...t0, ...edits[t0.id] } : t0;
         // ticked subtasks (task detail) show live in the row as "2/5"
         const st = subState[t.id];
@@ -136,7 +150,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
       }),
     })),
     recipientNames: (ids) => ids.flatMap((i) => resolveRecipient(i)?.label ?? []).join(", "),
-  }), [created, drafts, edits, subState]);
+  }), [created, drafts, edits, subState, deleted]);
 
   const send = (v: NewTaskValues) => {
     const built = buildTask(v, `new-${counter}`);
@@ -193,6 +207,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
       },
     }));
     setEditing(false);
+    if (editFromList) setDetail(null);
     setToast({ id: `edit-${cur.id}`, message: "Task updated." });
   };
 
@@ -204,9 +219,9 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
       {children}
       {modal && (
         <NewTaskModal
-          key={modal.draftId ?? "new"}
+          key={modal.draftId ?? (modal.copy ? "copy" : "new")}
           recipients={options}
-          initial={draft?.values ?? emptyTask(TODAY)}
+          initial={draft?.values ?? modal.copy ?? emptyTask(TODAY)}
           isDraft={!!draft}
           onSend={send}
           onSaveDraft={saveDraft}
@@ -233,8 +248,36 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           initial={valuesFromTask(cur)}
           onSend={saveEdit}
           onSaveDraft={() => {}}
-          onClose={() => setEditing(false)}
+          onClose={() => { setEditing(false); if (editFromList) setDetail(null); }}
         />
+      )}
+      {confirmDelete && (
+        <Modal
+          title="Aufgabe löschen?"
+          titleSize="h3"
+          width={440}
+          onClose={() => setConfirmDelete(null)}
+          footer={
+            <>
+              <Button variant="tertiary" label="Abbrechen" onClick={() => setConfirmDelete(null)} />
+              <Button
+                variant="primary"
+                icon="delete"
+                label="Löschen"
+                onClick={() => {
+                  const id = confirmDelete.id;
+                  setDeleted((d) => [...d, id]);
+                  setConfirmDelete(null);
+                  setToast({ id: `del-${id}`, message: `Aufgabe „${confirmDelete.title}“ gelöscht.`, noView: true, undo: () => { setDeleted((d) => d.filter((x) => x !== id)); setToast(null); } });
+                }}
+              />
+            </>
+          }
+        >
+          <p className="m-0 sp-text-body-standard text-sp-text">
+            Möchten Sie die Aufgabe „{confirmDelete.title}“ wirklich löschen? Sie wird aus der Liste entfernt{confirmDelete.status === "done" ? " – einschließlich der abgegebenen Nachweise" : ""}. Direkt danach können Sie das Löschen noch rückgängig machen.
+          </p>
+        </Modal>
       )}
       {toast && (
         <div className="fixed bottom-[var(--sp-space-6x)] left-1/2 -translate-x-1/2 z-[60]">
@@ -242,7 +285,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
             message={toast.message}
             onClose={() => setToast(null)}
             actions={toast.undo
-              ? [{ label: "View", onClick: () => { onView(); setToast(null); } }, { label: "Undo", onClick: toast.undo }]
+              ? [...(toast.noView ? [] : [{ label: "View", onClick: () => { onView(); setToast(null); } }]), { label: "Undo", onClick: toast.undo }]
               : undefined}
           />
         </div>

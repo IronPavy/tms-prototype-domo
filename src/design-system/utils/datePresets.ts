@@ -18,9 +18,6 @@ export const DATE_PRESETS: DatePreset[] = [
   { id: "thisWeek",  label: "Diese Woche",  range: (t) => ({ start: startOfWeek(t), end: addDays(startOfWeek(t), 6) }) },
   { id: "lastWeek",  label: "Letzte Woche", range: (t) => ({ start: addDays(startOfWeek(t), -7), end: addDays(startOfWeek(t), -1) }) },
   { id: "thisMonth", label: "Dieser Monat", range: (t) => ({ start: startOfMonth(t), end: endOfMonth(t) }) },
-  { id: "lastMonth", label: "Letzter Monat", range: (t) => ({ start: addMonths(t, -1), end: endOfMonth(addMonths(t, -1)) }) },
-  { id: "last30",    label: "Letzte 30 Tage", range: (t) => ({ start: addDays(t, -29), end: startOfDay(t) }) },
-  { id: "last90",    label: "Letzte 90 Tage", range: (t) => ({ start: addDays(t, -89), end: startOfDay(t) }) },
 ];
 
 /** preset whose range equals `range` today, if any */
