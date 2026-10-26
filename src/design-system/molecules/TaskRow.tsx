@@ -24,7 +24,7 @@ export interface TaskFile {
   at: string;
 }
 
-export interface SubtaskItem { id: string; title: string; done?: boolean; /** how it is solved (default check) */ proof?: "check" | "photo" | "attachment"; /** file of a done photo / attachment subtask */ file?: TaskFile }
+export interface SubtaskItem { id: string; title: string; done?: boolean; /** how it is solved (default check) */ proof?: "check" | "photo" | "attachment"; /** files of a done photo / attachment subtask (one or more) */ files?: TaskFile[] }
 
 export interface TaskRowData {
   id: string;

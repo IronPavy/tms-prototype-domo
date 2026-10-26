@@ -107,7 +107,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   // task detail modal
   const [detail, setDetail] = useState<TaskRowData | null>(null);
   const [editing, setEditing] = useState(false);
-  const [subState, setSubState] = useState<Record<string, Record<string, { done: boolean; file?: SubFile }>>>({});
+  const [subState, setSubState] = useState<Record<string, Record<string, { done: boolean; files?: SubFile[] }>>>({});
   const [events, setEvents] = useState<Record<string, HistoryEntry[]>>({});
   const [edits, setEdits] = useState<Record<string, Partial<TaskRowData>>>({});
 
@@ -156,23 +156,23 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
 
   const cur = detail ? { ...detail, ...edits[detail.id] } : null;
   const doneIds = cur ? (cur.subtaskItems ?? []).filter((x) => subState[cur.id]?.[x.id]?.done ?? x.done).map((x) => x.id) : [];
-  const subFiles: Record<string, SubFile> = {};
-  Object.entries(cur ? subState[cur.id] ?? {} : {}).forEach(([k, v]) => { if (v.file) subFiles[k] = v.file; });
+  const subFiles: Record<string, SubFile[]> = {};
+  Object.entries(cur ? subState[cur.id] ?? {} : {}).forEach(([k, v]) => { if (v.files?.length) subFiles[k] = v.files; });
 
   /** one subtask changes state (check toggled / file added / file removed) + a history entry */
-  const setSub = (id: string, done: boolean, file?: SubFile) => {
+  const setSub = (id: string, done: boolean, files?: SubFile[], added?: SubFile[]) => {
     if (!cur) return;
     const title = cur.subtaskItems?.find((x) => x.id === id)?.title ?? "";
-    setSubState((m) => ({ ...m, [cur.id]: { ...m[cur.id], [id]: { done, file } } }));
-    const text = done ? (file ? `Unteraufgabe „${title}“ erledigt – ${file.name}` : `Unteraufgabe „${title}“ erledigt`) : `Unteraufgabe „${title}“ wieder geöffnet`;
+    setSubState((m) => ({ ...m, [cur.id]: { ...m[cur.id], [id]: { done, files } } }));
+    const names = files && files.length > 1 ? `${files.length} Dateien` : files?.[0]?.name;
+    const text = done ? (added ? `Unteraufgabe „${title}“ – ${added.length > 1 ? `${added.length} Dateien` : "Datei"} hinzugefügt: ${added.map((f) => f.name).join(", ")}` : names ? `Unteraufgabe „${title}“ erledigt – ${names}` : `Unteraufgabe „${title}“ erledigt`) : `Unteraufgabe „${title}“ wieder geöffnet`;
     setEvents((m) => ({ ...m, [cur.id]: [...(m[cur.id] ?? []), { id: `e-${Date.now()}`, title: text, meta: stamp(new Date()), state: done ? "done" : "pending" }] }));
   };
   const toggleSubtask = (id: string) => setSub(id, !doneIds.includes(id));
-  const addSubtaskFile = (id: string, f: File) => setSub(id, true, { name: f.name, size: f.size, kind: f.type.startsWith("image/") ? "image" : f.type === "application/pdf" ? "pdf" : "other", url: URL.createObjectURL(f) });
-  const removeSubtaskFile = (id: string) => {
-    const old = subState[cur?.id ?? ""]?.[id]?.file;
-    if (old?.url) URL.revokeObjectURL(old.url);
-    setSub(id, false);
+  const addSubtaskFiles = (id: string, list: File[]) => {
+    const fresh: SubFile[] = list.map((f) => ({ name: f.name, size: f.size, kind: f.type.startsWith("image/") ? "image" : f.type === "application/pdf" ? "pdf" : "other", url: URL.createObjectURL(f) }));
+    const had = subState[cur?.id ?? ""]?.[id]?.files ?? [];
+    setSub(id, true, [...had, ...fresh], had.length > 0 || doneIds.includes(id) ? fresh : undefined);
   };
   const saveEdit = (v: NewTaskValues) => {
     if (!cur) return;
@@ -220,8 +220,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           subtaskDone={doneIds}
           subtaskFiles={subFiles}
           onToggleSubtask={toggleSubtask}
-          onAddSubtaskFile={addSubtaskFile}
-          onRemoveSubtaskFile={removeSubtaskFile}
+          onAddSubtaskFiles={addSubtaskFiles}
           extraHistory={events[cur.id]}
           onClose={() => setDetail(null)}
         />

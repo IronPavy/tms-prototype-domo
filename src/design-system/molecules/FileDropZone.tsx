@@ -8,24 +8,26 @@ export interface FileDropZoneProps {
   noun: string;
   /** small hint line under the button ("Nur Bilder") */
   hint?: string;
-  onFile: (file: File) => void;
+  /** several files may be dropped / chosen at once */
+  multiple?: boolean;
+  onFiles: (files: File[]) => void;
   onCancel?: () => void;
 }
 
 /** Sophi's Pet 3 "Upload with Drag & Drop" (Empty / Dragging): frame with a 2px dashed border (border/line), radius 2x, padding 8x,
     Title "… hier ablegen" + "oder" + tertiary icon+text button (opens the file explorer). Dragging = selected background + brand border.
     With accept="image/*" other file types are refused with an inline hint. */
-export function FileDropZone({ accept, noun, hint, onFile, onCancel }: FileDropZoneProps) {
+export function FileDropZone({ accept, noun, hint, multiple, onFiles, onCancel }: FileDropZoneProps) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [error, setError] = useState("");
 
   const take = (files: FileList | null | undefined) => {
-    const f = files?.[0];
-    if (!f) return;
-    if (accept === "image/*" && !f.type.startsWith("image/")) { setError("Nur Bilder sind erlaubt."); return; }
+    const list = [...(files ?? [])].slice(0, multiple ? 10 : 1);
+    if (!list.length) return;
+    if (accept === "image/*" && list.some((f) => !f.type.startsWith("image/"))) { setError("Nur Bilder sind erlaubt."); return; }
     setError("");
-    onFile(f);
+    onFiles(list);
   };
 
   return (
@@ -50,6 +52,7 @@ export function FileDropZone({ accept, noun, hint, onFile, onCancel }: FileDropZ
         type="file"
         hidden
         accept={accept}
+        multiple={multiple}
         aria-label={`${noun} auswählen`}
         onChange={(e) => { take(e.target.files); e.target.value = ""; }}
       />

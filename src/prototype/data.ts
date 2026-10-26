@@ -442,10 +442,10 @@ function subtaskItemsFor(t: TaskTemplate, status: TaskRowData["status"], d: Date
   if (!t.subtasks) return undefined;
   const names = SUBTASK_NAMES[t.key] ?? Array.from({ length: t.subtasks }, (_, i): [string, "check"] => [`Schritt ${i + 1}`, "check"]);
   return names.slice(0, t.subtasks).map(([title, proof], i) => {
-    const fileId = SUBTASK_FILES[t.key]?.[i];
+    const fileIds = SUBTASK_FILES[t.key]?.[i] ?? [];
     return {
       id: `${t.key}-s${i}`, title, proof, done: status === "done",
-      file: status === "done" && fileId && proof !== "check" ? makeFile(fileId, d, time, person, i) : undefined,
+      files: status === "done" && fileIds.length && proof !== "check" ? fileIds.map((id, k) => makeFile(id, d, plus(time, k), person, i * 10 + k)) : undefined,
     };
   });
 }

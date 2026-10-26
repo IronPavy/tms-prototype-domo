@@ -32,14 +32,14 @@ export const TASK_FILES: Record<string, string[]> = {
   ht: ["teilnahmebescheinigung"], bic: ["inventur-bar"], erb: ["unterschriftenliste"], nd1: ["foto-lager"], nd2: ["speisekarte"], nd3: ["notfallplan"],
 };
 
-/** file of the subtasks that need a photo / attachment: template key → subtask index → file id */
-export const SUBTASK_FILES: Record<string, Record<number, string>> = {
-  wcf: { 3: "foto-wc" },
-  ccm: { 1: "foto-siebtraeger", 4: "probelauf" },
-  sue: { 1: "z-bon", 2: "foto-zapfsaeulen", 3: "notfallplan" },
-  wgr: { 1: "foto-gastraum", 2: "foto-fritteuse", 3: "inventur-bar" },
-  caf: { 1: "foto-siebtraeger", 2: "foto-vitrine", 3: "temperaturprotokoll" },
-  dcf: { 1: "foto-fritteuse", 2: "foto-fritteuse", 5: "messprotokoll" },
+/** files of the subtasks that need a photo / attachment: template key → subtask index → file ids (one or more) */
+export const SUBTASK_FILES: Record<string, Record<number, string[]>> = {
+  wcf: { 3: ["foto-wc"] },
+  ccm: { 1: ["foto-siebtraeger", "foto-fritteuse"], 4: ["probelauf"] },
+  sue: { 1: ["z-bon"], 2: ["foto-zapfsaeulen", "foto-waschstrasse"], 3: ["notfallplan", "temperaturprotokoll"] },
+  wgr: { 1: ["foto-gastraum", "foto-vitrine", "foto-bar"], 2: ["foto-fritteuse"], 3: ["inventur-bar"] },
+  caf: { 1: ["foto-siebtraeger", "foto-bar"], 2: ["foto-vitrine", "foto-lager", "foto-gastraum"], 3: ["temperaturprotokoll"] },
+  dcf: { 1: ["foto-fritteuse", "foto-lager"], 2: ["foto-fritteuse"], 5: ["messprotokoll"] },
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
