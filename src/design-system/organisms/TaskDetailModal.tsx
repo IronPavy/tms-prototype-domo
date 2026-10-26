@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Avatar } from "../atoms/Avatar";
 import { Icon } from "../atoms/Icon";
 import { StatusChip } from "../atoms/StatusChip";
 import { DetailRow } from "../molecules/DetailRow";
@@ -91,7 +90,6 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
             ) : (
               <DetailRow label="Zugewiesen an">
                 <span className="flex items-center gap-[var(--sp-space-2x)]">
-                  <Avatar name={task.person} size={24} />
                   <span className="flex flex-col min-w-0">
                     <span className="truncate">{task.person}</span>
                     {task.team && <span className="sp-text-small text-sp-text-label truncate">{task.team}</span>}

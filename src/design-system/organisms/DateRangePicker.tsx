@@ -3,13 +3,15 @@ import { Button } from "../atoms/Button";
 import { Icon } from "../atoms/Icon";
 import { MenuListItem } from "../molecules/MenuListItem";
 import { CalendarRange } from "./CalendarRange";
-import { formatRange, type DateRange } from "../utils/date";
+import { clampRange, diffDays, formatRange, sameRange, type DateRange } from "../utils/date";
 import { DATE_PRESETS, matchPreset, shiftRange } from "../utils/datePresets";
 
 export interface DateRangePickerProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
   today?: Date;
+  /** last selectable day (e.g. today: the future is disabled) — presets, ‹ › and the calendar stop there */
+  maxDate?: Date;
 }
 
 const box =
@@ -21,13 +23,17 @@ const box =
     Presets and the calendar only change a draft (one click = single day, second click = range); "Confirm" (bottom right
     under the calendar) applies it and closes, "Cancel" / Esc / click outside discards it.
     ‹ › step by the range: a day, a week, whole months, or the range length. */
-export function DateRangePicker({ value, onChange, today = new Date() }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, today = new Date(), maxDate }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   /** range being edited in the popover — applied by Confirm */
   const [draft, setDraft] = useState<DateRange>(value);
-  const preset = matchPreset(value, today);
-  const draftPreset = matchPreset(draft, today);
+  const presetRange = (p: (typeof DATE_PRESETS)[number]) => (maxDate ? clampRange(p.range(today), maxDate) : p.range(today));
+  const find = (r: DateRange) => (maxDate ? DATE_PRESETS.find((p) => sameRange(presetRange(p), r)) : matchPreset(r, today));
+  const preset = find(value);
+  const draftPreset = find(draft);
+  const atEnd = !!maxDate && diffDays(maxDate, value.end) >= 0;
+  const step = (dir: 1 | -1) => { const r = shiftRange(value, dir); onChange(maxDate ? clampRange(r, maxDate) : r); };
   const openPicker = () => { setDraft(value); setOpen(true); };
 
   useEffect(() => {
@@ -42,7 +48,7 @@ export function DateRangePicker({ value, onChange, today = new Date() }: DateRan
 
   return (
     <div ref={ref} className="relative flex items-center gap-[var(--sp-space-1x)]">
-      <button type="button" aria-label="Vorheriger Zeitraum" className={`${box} justify-center w-8`} onClick={() => onChange(shiftRange(value, -1))}>
+      <button type="button" aria-label="Vorheriger Zeitraum" className={`${box} justify-center w-8`} onClick={() => step(-1)}>
         <Icon name="previous" color="var(--sp-text)" />
       </button>
 
@@ -61,7 +67,7 @@ export function DateRangePicker({ value, onChange, today = new Date() }: DateRan
         <Icon name="expanded" color="var(--sp-text)" />
       </button>
 
-      <button type="button" aria-label="Nächster Zeitraum" className={`${box} justify-center w-8`} onClick={() => onChange(shiftRange(value, 1))}>
+      <button type="button" aria-label="Nächster Zeitraum" disabled={atEnd} className={`${box} justify-center w-8 ${atEnd ? "opacity-40 cursor-not-allowed" : ""}`} onClick={() => step(1)}>
         <Icon name="next" color="var(--sp-text)" />
       </button>
 
@@ -79,14 +85,14 @@ export function DateRangePicker({ value, onChange, today = new Date() }: DateRan
                 label={p.label}
                 inset
                 selected={draftPreset?.id === p.id}
-                onClick={() => setDraft(p.range(today))}
+                onClick={() => setDraft(presetRange(p))}
               />
             ))}
           </div>
 
           <div className="flex flex-col">
             {/* Calendar — Range */}
-            <CalendarRange bare lang="de" value={draft} today={today} onChange={(r) => setDraft(r)} />
+            <CalendarRange bare lang="de" value={draft} today={today} maxDate={maxDate} onChange={(r) => setDraft(r)} />
             <div className="flex items-center justify-end gap-[var(--sp-space-2x)] p-[var(--sp-space-3x)] border-0 border-t border-solid border-sp-border-line">
               <Button variant="tertiary" label="Abbrechen" onClick={() => setOpen(false)} />
               <Button variant="primary" label="Bestätigen" onClick={() => { onChange(draft); setOpen(false); }} />

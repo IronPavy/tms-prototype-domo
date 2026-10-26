@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "../atoms/Button";
+import { Tooltip } from "../atoms/Tooltip";
 import {
-  addMonths, isBetween, monthGrid, sameDay, startOfMonth, toRange, type DateRange,
+  addMonths, diffDays, isBetween, monthGrid, sameDay, startOfMonth, toRange, type DateRange,
 } from "../utils/date";
 
 const TEXT = {
-  en: { weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], month: new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }), prev: "Previous month", next: "Next month" },
-  de: { weekdays: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"], month: new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }), prev: "Vorheriger Monat", next: "Nächster Monat" },
+  en: { weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], month: new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }), prev: "Previous month", next: "Next month", future: "Future days can't be selected" },
+  de: { weekdays: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"], month: new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }), prev: "Vorheriger Monat", next: "Nächster Monat", future: "Zukünftige Tage nicht wählbar" },
 };
 
 export interface CalendarRangeProps {
@@ -20,13 +21,15 @@ export interface CalendarRangeProps {
   single?: boolean;
   /** weekday / month names and button labels (default English) */
   lang?: "en" | "de";
+  /** last selectable day — every later day is greyed out and disabled */
+  maxDate?: Date;
 }
 
 /** Sophi's Pet "Calendar" Type=Range (884:2259) with "Calendar / Day" states (388:145).
     Click a day → that single day is selected; click a second day → range between both.
     Start/end = primary circle · days between = basics/selected band (other-month days: app-background band)
     · today = primary ring · hover = basics/hover · pressed = basics/pressed. */
-export function CalendarRange({ value, onChange, today = new Date(), bare, single: singleDay, lang = "en" }: CalendarRangeProps) {
+export function CalendarRange({ value, onChange, today = new Date(), bare, single: singleDay, lang = "en", maxDate }: CalendarRangeProps) {
   const T = TEXT[lang];
   const [month, setMonth] = useState(() => startOfMonth(value.end));
   const [anchor, setAnchor] = useState<Date | null>(null); // first click of a new range
@@ -75,6 +78,7 @@ export function CalendarRange({ value, onChange, today = new Date(), bare, singl
                 const inside = isBetween(d, shown.start, shown.end);
                 const edge = isStart || isEnd;
                 const isToday = sameDay(d, today);
+                const future = !!maxDate && diffDays(maxDate, d) > 0;
 
                 // band: from centre of start to centre of end; rounded at row edges (Mon / Sun)
                 const band = inside && !single && (
@@ -86,22 +90,30 @@ export function CalendarRange({ value, onChange, today = new Date(), bare, singl
                   />
                 );
 
-                const dayClass = edge
+                const dayClass = future
+                  ? "bg-transparent text-sp-text-placeholder opacity-40"
+                  : edge
                   ? "bg-sp-brand-fill-normal text-sp-brand-on-normal"
                   : inside
                     ? `bg-transparent ${inMonth ? "text-sp-text-selected" : "text-sp-text-placeholder"}`
                     : `bg-transparent ${inMonth ? "text-sp-text" : "text-sp-text-placeholder"} sp-interactive`;
 
                 return (
-                  <span key={d.toISOString()} className="relative size-8">
+                  <span key={d.toISOString()} className="group relative size-8">
                     {band}
+                    {future && (
+                      <Tooltip align={i < 2 ? "start" : i > 4 ? "end" : "center"} className={`absolute bottom-full z-10 mb-1 opacity-0 group-hover:opacity-100 ${i < 2 ? "left-0" : i > 4 ? "right-0" : "left-1/2 -translate-x-1/2"}`}>
+                        {T.future}
+                      </Tooltip>
+                    )}
                     <button
                       type="button"
+                      disabled={future}
                       onClick={() => pick(d)}
-                      onMouseEnter={() => setHover(d)}
+                      onMouseEnter={() => !future && setHover(d)}
                       aria-pressed={edge}
                       aria-label={d.toDateString()}
-                      className={`relative flex items-center justify-center size-8 p-0 rounded-[var(--sp-radius-pill)] cursor-pointer sp-text-medium outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${dayClass} ${
+                      className={`relative flex items-center justify-center size-8 p-0 rounded-[var(--sp-radius-pill)] ${future ? "cursor-not-allowed" : "cursor-pointer"} sp-text-medium outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${dayClass} ${
                         isToday && !edge ? "border border-solid border-sp-brand-fill-normal !text-sp-text-link" : "border-0"
                       }`}
                     >

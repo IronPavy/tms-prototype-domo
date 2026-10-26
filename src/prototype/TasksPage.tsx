@@ -3,6 +3,7 @@ import {
   Button, DateRangePicker, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
+import { clampRange } from "@/design-system/utils/date";
 import { TODAY, compareDue, dueDateKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
 import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
@@ -32,7 +33,9 @@ const VIEWS = [
 export default function TasksPage(_props: { onNavigate?: (id: string) => void }) {
   const pageRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("status");
-  const { range, setRange, pendingStatus, setPendingStatus } = usePeriod();
+  const { range: periodRange, setRange, pendingStatus, setPendingStatus } = usePeriod();
+  // the future cannot be looked at: the period ends today at the latest (date picker disables later days)
+  const range = clampRange(periodRange, TODAY);
   // search: `draft` is what is typed, `query` the applied search (Enter, at least 3 characters)
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
@@ -118,7 +121,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           actions={
             <>
               <ScopeFilters />
-              <DateRangePicker value={range} onChange={setRange} today={TODAY} />
+              <DateRangePicker value={range} onChange={setRange} today={TODAY} maxDate={TODAY} />
             </>
           }
         />

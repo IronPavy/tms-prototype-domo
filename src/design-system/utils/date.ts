@@ -34,6 +34,9 @@ export function isoWeek(d: Date) {
 export const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
+/** a range cut off after `max` (a range that lies completely after it becomes the single day `max`) */
+export const clampRange = (r: DateRange, max: Date): DateRange => ({ start: r.start > max ? startOfDay(max) : r.start, end: r.end > max ? startOfDay(max) : r.end });
+
 export const sameRange = (a: DateRange, b: DateRange) => sameDay(a.start, b.start) && sameDay(a.end, b.end);
 
 /** whole days from a to b (b - a) */
