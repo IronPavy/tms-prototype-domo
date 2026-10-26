@@ -17,7 +17,8 @@ export interface SubtaskListProps {
   files: Record<string, SubFile>;
   onToggle: (id: string) => void;
   onAddFile: (id: string, file: File) => void;
-  onRemoveFile: (id: string) => void;
+  /** not shown in the master view (files cannot be removed) — kept for the employee view */
+  onRemoveFile?: (id: string) => void;
   /** open the file of a subtask in the viewer */
   onOpenFile?: (id: string) => void;
 }
@@ -57,9 +58,8 @@ function IconAction({ label, icon, color, onClick, disabled, small }: { label: s
 /** Subtasks section of the task detail: header "Unteraufgaben · n von m" + SP3 Progress Bar, one raised card (surface/raised · 1px border
     line · radius 2x) with rows. Each row: title (line-through + label colour when done) and, at the right end, the resolve icon:
     check → toggles done · camera → photo drop area (images only) · paper clip → file drop area (SP3 "Upload with Drag & Drop").
-    Adding a file marks the subtask done; the file shows as a chip (thumbnail / icon · name · size, click = viewer · ×) and removing it
-    reopens the subtask. */
-export function SubtaskList({ items, done, files, onToggle, onAddFile, onRemoveFile, onOpenFile }: SubtaskListProps) {
+    Adding a file marks the subtask done; the file shows as a chip (thumbnail / icon · name, click = viewer); the master cannot remove it. */
+export function SubtaskList({ items, done, files, onToggle, onAddFile, onOpenFile }: SubtaskListProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const count = items.filter((s) => done.includes(s.id)).length;
 
@@ -99,7 +99,6 @@ export function SubtaskList({ items, done, files, onToggle, onAddFile, onRemoveF
                       )}
                       <span className="min-w-0 truncate sp-text-small-medium text-sp-text">{file.name}</span>
                     </button>
-                    <IconAction label="Datei entfernen und Unteraufgabe wieder öffnen" icon="close" color="var(--sp-icon)" onClick={() => onRemoveFile(s.id)} small />
                   </span>
                 )}
                 {isDone ? (
