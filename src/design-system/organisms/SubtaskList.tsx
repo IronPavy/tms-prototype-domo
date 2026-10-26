@@ -29,8 +29,8 @@ const ACTION: Record<"check" | "photo" | "attachment", { icon: IconName; open: s
   attachment: { icon: "attachment", open: "Datei hinzufügen", noun: "Dateien", hint: "Mehrere möglich" },
 };
 
-/** Solution-type button in a 24px frame with an SP3 Tooltip (fixed, so scrolling containers never clip it):
-    open = grey frame + grey icon, done = green (success fill) with a white icon. */
+/** Solution-type icon button (no frame) with an SP3 Tooltip (fixed, so scrolling containers never clip it):
+    open = grey icon, done = green icon. */
 function IconAction({ label, icon, done, onClick, disabled }: { label: string; icon: IconName; done?: boolean; onClick: () => void; disabled?: boolean }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const show = (el: HTMLElement) => { const r = el.getBoundingClientRect(); setPos({ x: r.left + r.width / 2, y: r.top }); };
@@ -44,9 +44,9 @@ function IconAction({ label, icon, done, onClick, disabled }: { label: string; i
       onMouseLeave={() => setPos(null)}
       onFocus={(e) => show(e.currentTarget)}
       onBlur={() => setPos(null)}
-      className={`relative flex items-center justify-center shrink-0 size-6 p-0 border border-solid rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${done ? "bg-sp-success-fill-normal border-sp-success-fill-normal" : "bg-sp-neutral-fill-light border-sp-neutral-border-light"} ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
+      className={`relative flex items-center justify-center shrink-0 size-6 p-0 border-0 bg-transparent rounded-[var(--sp-radius-2x)] outline-none focus-visible:shadow-[var(--sp-focus-brand)] ${disabled ? "cursor-default" : "cursor-pointer sp-interactive"}`}
     >
-      <Icon name={icon} size={12} color={done ? "var(--sp-success-on-normal)" : "var(--sp-icon)"} />
+      <Icon name={icon} size={20} color={done ? "var(--sp-success-on-surface)" : "var(--sp-icon)"} />
       {pos && (
         <span className="fixed z-[80] -translate-x-1/2 -translate-y-full" style={{ left: pos.x, top: pos.y - 4 }}>
           <Tooltip>{label}</Tooltip>
@@ -118,7 +118,7 @@ export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFi
           const list = files[s.id] ?? [];
                     const open = openId === s.id && kind !== "check";
           return (
-            <li key={s.id} className={`flex flex-col gap-[var(--sp-space-2x)] py-0 pl-[var(--sp-space-3x)] pr-[var(--sp-space-2x)] ${i ? "border-0 border-t border-solid border-sp-neutral-fill-light" : ""}`}>
+            <li key={s.id} className={`flex flex-col gap-[var(--sp-space-2x)] py-0 pl-[var(--sp-space-3x)] pr-[var(--sp-space-4x)] ${i ? "border-0 border-t border-solid border-sp-neutral-fill-light" : ""}`}>
               <div className="flex items-center gap-[var(--sp-space-3x)] h-16">
                 <StepNumber n={i + 1} done={isDone} />
                 <div className="flex flex-col justify-center gap-[var(--sp-space-2x)] flex-1 min-w-0">

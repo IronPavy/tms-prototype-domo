@@ -14,10 +14,10 @@ const css = `
 .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .t .x{text-decoration:line-through;color:#33464C}
 .chip{height:24px;padding:0 8px 0 4px;border-radius:4px;background:#E2E9EC;border:1px solid #C5D4D9;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;max-width:200px}
-.btn{width:28px;height:28px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center}
-.btn.o{border:1.5px solid #AEC2C9;background:#F2F6F7;color:#688B99}
-.btn.d{border:1.5px solid #2E9E6B;background:#2E9E6B;color:#fff}
-.btn svg{width:18px;height:18px}
+.btn{width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center}
+.btn.o{color:#688B99}.btn.d{color:#2E9E6B}
+.B .btn.o{color:#00738E}
+.btn svg{width:20px;height:20px}
 .h{font-weight:500;margin:0 0 8px}
 .legend{display:flex;gap:18px;align-items:center;font-size:12px;color:#33464C}
 .legend span{display:flex;gap:6px;align-items:center}
@@ -32,18 +32,17 @@ const row = (n, title, done, type, chips = []) => `<div class="row"><span class=
 <div class="t"><span class="${done ? "x" : ""}">${title}</span>${chips.length ? `<div style="display:flex;gap:6px">${chips.map((c) => `<span class="chip">${I.doc}${c}</span>`).join("")}</div>` : ""}</div>
 <span class="btn ${done ? "d" : "o"}">${I[type]}</span></div>`;
 
-const html = `<!doctype html><meta charset="utf-8"><style>${css}</style><div class="stage">
-<div class="cap">Unteraufgaben — Lösungsart im Rahmen: grau = offen, grün mit weißem Icon = erledigt</div>
-<div><p class="h">Unteraufgaben <span style="font-weight:400;color:#33464C;font-size:12px">2 von 5</span></p>
+const card = (cls, cap) => `<div class="${cls}"><div class="cap" style="margin-bottom:6px">${cap}</div><p class="h">Unteraufgaben <span style="font-weight:400;color:#33464C;font-size:12px">2 von 5</span></p>
 <div class="card">
 ${row(1, "Kassenstand zählen", true, "check")}
 ${row(2, "Zwischenabschluss (Z-Bon) hochladen", true, "clip", ["Z-Bon_Tagesabschluss_26-1…"])}
 ${row(3, "Zapfsäulen &amp; Tankplatz (Foto)", false, "cam")}
 ${row(4, "Protokoll Tankstelle hochladen", false, "clip")}
 ${row(5, "Schlüssel an Spätschicht übergeben", false, "check")}
-</div></div>
-<div class="legend"><span><span class="btn o" >${I.check}</span>offen</span><span><span class="btn d" >${I.check}</span>erledigt</span>
-<span>Typ bleibt am Icon erkennbar: Haken · Kamera · Büroklammer</span></div>
+</div></div>`;
+const html = `<!doctype html><meta charset="utf-8"><style>${css}</style><div class="stage">
+${card("A", "A — nur Icon, ohne Rahmen: offen grau · erledigt grün")}
+${card("B", "B — nur Icon, ohne Rahmen: offen Markenfarbe (klickbar) · erledigt grün")}
 </div>`;
-fs.writeFileSync(path.join(__dirname, "subtasks-frame.html"), html);
+fs.writeFileSync(path.join(__dirname, "subtasks-icons.html"), html);
 console.log("ok");
