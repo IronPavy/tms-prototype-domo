@@ -7,7 +7,7 @@ import type { TaskAction } from "./TaskRowMenu";
 import { TextHint } from "./TextHint";
 import { IconHint } from "./IconHint";
 import type { Tone } from "../utils/tones";
-import type { ShiftColor } from "./ShiftPill";
+import { ShiftPill, type ShiftColor } from "./ShiftPill";
 
 export type TaskStatus = "done" | "open" | "overdue";
 /** solution type — how the task is completed */
@@ -40,6 +40,10 @@ export interface TaskRowData {
   person: string;
   /** shift / team under the name, "Morning shift · Kitchen" */
   team: string;
+  /** more employees assigned besides `person` — shown as a "+N" pill, hover lists their names */
+  others?: { name: string; sub?: string }[];
+  /** shifts the task is assigned to — the first is shown under the name as a pill + name, the rest as "+N" with a tooltip */
+  shifts?: { name: string; group: string; code: string; color?: ShiftColor }[];
   /** location (Cards view header) */
   location?: string;
   /** sub-steps of the task — shown in the DueDateChip on cards */
@@ -105,17 +109,26 @@ export function TaskDueChip({ task }: { task: TaskRowData }) {
   );
 }
 
-/** up to 2 label tags (each cut at 30 characters, full name as tooltip when cut); more → "+N" with all names as tooltip */
+/** "+N" pill for more employees / shifts than fit under the name — hover shows who the others are */
+function MorePill({ names }: { names: string[] }) {
+  return (
+    <IconHint label={names.join(", ")} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
+      <StatusChip tone="default" label={`+${names.length}`} />
+    </IconHint>
+  );
+}
+
+/** up to 3 label tags (each cut at 30 characters, full name as tooltip when cut); more → one "+N" pill, hover shows the hidden tags */
 export function Tags({ tags }: { tags: string[] }) {
   const cut = (s: string) => (s.length > 30 ? `${s.slice(0, 30).trimEnd()}…` : s);
-  const more = tags.slice(2);
+  const more = tags.slice(3);
   return (
     <>
-      {tags.slice(0, 2).map((t) => (
+      {tags.slice(0, 3).map((t) => (
         <span key={t} title={t.length > 30 ? t : undefined} className="inline-flex"><StatusChip tone="default" label={cut(t)} /></span>
       ))}
       {!!more.length && (
-        <IconHint label={tags.join(", ")} className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
+        <IconHint label={more.join(", ")}className="rounded-[var(--sp-radius-2x)] focus-visible:shadow-[var(--sp-focus-brand)]">
           <StatusChip tone="default" label={`+${more.length}`} />
         </IconHint>
       )}
@@ -161,11 +174,20 @@ export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?
       </span>
 
       {/* assignee */}
-      <span className="flex items-center gap-[var(--sp-space-2x)] min-w-0">
-        <span className="flex flex-col gap-[var(--sp-space-1x)] min-w-0">
+      <span className="flex flex-col gap-[var(--sp-space-1x)] min-w-0">
+        <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
           <TextHint text={task.person} max={30} className="sp-text-standard text-sp-text" />
-          <TextHint text={task.team} className="sp-text-small text-sp-text-label" />
+          {!!task.others?.length && <MorePill names={task.others.map((o) => o.name)} />}
         </span>
+        {task.shifts?.length ? (
+          <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
+            <ShiftPill code={task.shifts[0].code} color={task.shifts[0].color} />
+            <TextHint text={task.shifts[0].name} className="sp-text-small text-sp-text-label" />
+            {task.shifts.length > 1 && <MorePill names={task.shifts.slice(1).map((s) => `${s.name} · ${s.group}`)} />}
+          </span>
+        ) : (
+          <TextHint text={task.team} className="sp-text-small text-sp-text-label" />
+        )}
       </span>
 
       {/* due — pill in the status colour with the status icon; tooltip = status in words */}

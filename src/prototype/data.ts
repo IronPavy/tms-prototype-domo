@@ -320,6 +320,10 @@ export const UPCOMING: (UpcomingItem & { location: string })[] = [
 interface TaskTemplate {
   key: string; title: string; high?: boolean; time: string; tags: string[]; proof: TaskRowData["proof"];
   people: [string, string][]; // [person, team] rotated per day
+  /** more employees assigned besides the person of the day → "+N" pill in the list */
+  also?: [string, string][];
+  /** shifts the task is assigned to (labels of SHIFTS) → shift pill + name, more → "+N" */
+  shifts?: string[];
   /** sub-steps (checklist items / form fields) — shown on cards */
   subtasks?: number;
   /** weekday (0 = Sun) for weekly tasks */
@@ -333,19 +337,23 @@ interface TaskTemplate {
 const DAILY: TaskTemplate[] = [
   // Frankfurt · Tankstelle & Shop
   { key: "sho", title: "Shop öffnen & Kasse einrichten", time: "05:30", tags: ["Kasse", "Service"], proof: "check",
-    people: [["Josipa Maksimovic", "Frühschicht · Shop"], ["Celine Wagner", "Frühschicht · Shop"]] },
+    people: [["Josipa Maksimovic", "Frühschicht · Shop"], ["Celine Wagner", "Frühschicht · Shop"]],
+    also: [["Kim Fehrmann", "Reinigung"], ["Ana Grgic", "Küche"], ["Selin Erden", "Reinigung"]] },
   { key: "zap", title: "Zapfsäulen & Tankplatz kontrollieren", high: true, time: "06:30", tags: ["Sicherheit", "Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Reinigung"]] },
   { key: "bak", title: "Lieferschein Backwaren prüfen", time: "07:30", tags: ["Wareneingang"], proof: "attachment", people: [["Josipa Maksimovic", "Frühschicht · Shop"]] },
   { key: "prc", title: "Preisauszeichnung an den Zapfsäulen abgleichen", time: "08:30", tags: ["Kasse"], proof: "check", people: [["Celine Wagner", "Frühschicht · Shop"]] },
   { key: "wcf", subtasks: 4, title: "WC-Kontrolle Tankstelle", time: "10:00", tags: ["Reinigung"], proof: "check", people: [["Kim Fehrmann", "Reinigung"]] },
   { key: "wsh", title: "Waschstraße & Staubsaugerplätze reinigen", time: "14:00", tags: ["Reinigung"], proof: "photo", people: [["Kim Fehrmann", "Reinigung"]] },
-  { key: "kas", title: "Kassenabschluss (Z-Bon)", time: "22:00", tags: ["Kasse"], proof: "attachment", people: [["Celine Wagner", "Spätschicht · Shop"], ["Josipa Maksimovic", "Spätschicht · Shop"]] },
+  { key: "kas", title: "Kassenabschluss (Z-Bon)", time: "22:00", tags: ["Kasse"], proof: "attachment", people: [["Celine Wagner", "Spätschicht · Shop"], ["Josipa Maksimovic", "Spätschicht · Shop"]],
+    shifts: ["Spätschicht · Shop", "Spätschicht · Küche", "Abschlussschicht · Service"] },
   // München · Restaurant
   { key: "kk1", title: "Kühlhaus-Temperatur prüfen – morgens", high: true, time: "06:30", tags: ["HACCP"], proof: "attachment",
-    people: [["Tobias Aurenz", "Frühschicht · Küche"], ["Ana Grgic", "Frühschicht · Küche"]] },
+    people: [["Tobias Aurenz", "Frühschicht · Küche"], ["Ana Grgic", "Frühschicht · Küche"]],
+    shifts: ["Frühschicht · Küche", "Frühschicht · Service"], also: [["Kristina Barac", "Frühschicht · Service"]] },
   { key: "gas", title: "Gastraum & Eingang reinigen", time: "09:30", tags: ["Reinigung"], proof: "photo", people: [["Selin Erden", "Reinigung"]] },
   { key: "mue", title: "Müll entsorgen", time: "09:00", tags: ["Reinigung"], proof: "check", people: [["Selin Erden", "Reinigung"]] },
-  { key: "ter", title: "Terrasse öffnen", time: "10:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Frühschicht · Service"]] },
+  { key: "ter", title: "Terrasse öffnen", time: "10:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Frühschicht · Service"]],
+    also: [["Anna Müller", "Service"], ["Jonas Weber", "Service"]] },
   { key: "all", title: "Allergen-Aushang der Tageskarte prüfen", time: "11:00", tags: ["HACCP"], proof: "photo", people: [["Ana Grgic", "Küche"]] },
   { key: "bev", title: "Getränkelager auffüllen", time: "11:30", tags: ["Service"], proof: "check", people: [["Kristina Barac", "Frühschicht · Service"]] },
   { key: "get", title: "Getränkelieferung annehmen & Lieferschein ablegen", time: "12:30", tags: ["Wareneingang"], proof: "attachment", people: [["Kristina Barac", "Frühschicht · Service"]] },
@@ -360,7 +368,7 @@ const DAILY: TaskTemplate[] = [
   { key: "oel", title: "Frittieröl prüfen (Testprotokoll)", time: "14:30", tags: ["HACCP"], proof: "attachment", people: [["Florian Ade", "Küche"]] },
 ];
 const WEEKLY: TaskTemplate[] = [
-  { key: "ccm", subtasks: 5, title: "Kaffeemaschine entkalken", time: "22:30", weekday: 1, tags: ["Reinigung", "HACCP", "Pflicht"], proof: "check", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
+  { key: "ccm", subtasks: 5, title: "Kaffeemaschine entkalken", time: "22:30", weekday: 1, tags: ["Reinigung", "HACCP", "Pflicht", "Wartung", "Technik"], proof: "check", people: [["Ruzica Vucic", "Abschlussschicht · Service"]] },
 ];
 /** one-time tasks, placed relative to TODAY */
 const ONE_TIME: (TaskTemplate & { day: number; status?: TaskRowData["status"]; comments?: number })[] = [
@@ -474,6 +482,8 @@ function makeRow(t: TaskTemplate, d: Date, extra: Partial<TaskRowData>, seed: nu
   const fileIds = status === "done" && t.proof !== "check" && !t.subtasks ? TASK_FILES[t.key] ?? [] : [];
   return {
     id: `${t.key}-${d.toDateString()}`, title: t.title, high: t.high, tags: t.tags, proof: t.proof, person, team,
+    others: t.also?.map(([name, sub]) => ({ name, sub })),
+    shifts: t.shifts?.flatMap((l) => { const s = SHIFTS.find((x) => x.label === l); return s ? [{ name: s.name, group: s.group, code: s.code, color: s.color }] : []; }),
     location: t.loc ?? locOf(person), subtasks: t.subtasks,
     ...created(t),
     description: DESCRIPTIONS[t.key],

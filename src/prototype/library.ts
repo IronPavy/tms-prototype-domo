@@ -50,7 +50,7 @@ const DEFS: LibDef[] = [
     description: "Terrasse aufschließen, Tische und Stühle stellen, Sonnenschirme öffnen und Heizpilze prüfen." },
   { key: "l6", title: "Milchlieferung: Lieferschein ablegen", freq: "daily", when: "07:00", recv: ["person", "p3"], proof: "attachment", tags: ["Wareneingang"], by: "Anna Müller", created: "10.02.26, 15:20",
     description: "Milchlieferung kontrollieren (Kühlkette) und den Lieferschein ablegen." },
-  { key: "l7", title: "Kaffeemaschine entkalken", freq: "weekly", when: "Mo 22:30", recv: ["person", "p6"], proof: "check", tags: ["Reinigung", "HACCP", "Pflicht"], subtasks: 5, by: "Michael Potsch", created: "17.02.26, 16:45",
+  { key: "l7", title: "Kaffeemaschine entkalken", freq: "weekly", when: "Mo 22:30", recv: ["person", "p6"], proof: "check", tags: ["Reinigung", "HACCP", "Pflicht", "Wartung", "Technik"], subtasks: 5, by: "Michael Potsch", created: "17.02.26, 16:45",
     description: "Kaffeemaschine entkalken, Brühgruppe reinigen und einen Probelauf durchführen." },
   { key: "l8", title: "Frittieröl prüfen (Testprotokoll)", freq: "weekly", when: "Fr 14:30", recv: ["person", "p4"], proof: "attachment", tags: ["HACCP"], by: "Anna Müller", created: "24.02.26, 08:15",
     description: "Ölqualität der Fritteusen messen und das Testprotokoll hochladen." },
