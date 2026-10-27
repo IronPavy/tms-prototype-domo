@@ -29,15 +29,16 @@ export interface TaskListByDayProps {
 
 const ROWS_CARD = "overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius-3x)]";
 
-/** List view grouped by day — pinned sections "Überfällig" and "Ohne Fälligkeit" first, then the days oldest → newest.
+/** List view grouped by day — pinned sections "Überfällig" and "Ohne Fälligkeit" first, then the days newest → oldest.
     · day header: label (Roboto Medium) · "HEUTE" Badge Notification on today · count = neutral Badge Chip (full number of the day)
     · only days that have tasks are shown (no empty days, no "Keine Aufgaben")
-    · all days of the period are listed in order, from the first selected day to the last (no folding of past days)
+    · all days of the period are listed newest first — the last selected day on top, the first selected day at the bottom (no folding)
     · every task of a day is listed (no "load more" — the page scrolls)
     Cards = SP3 "Card" Filled (surface/raised, radius 3x); empty pinned sections use the SP3 Empty State (Small). */
 export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }: TaskListByDayProps) {
   // days without tasks are never shown (filters / search leave only what has data)
-  const filled = days.filter((d) => d.tasks.length);
+  // newest day first: period 1.10.–27.10. lists 27.10., 26.10., 25.10. … 1.10.
+  const filled = days.filter((d) => d.tasks.length).reverse();
 
   const Header = ({ children, tone = "default", count, badge }: { children: ReactNode; tone?: "default" | "error"; count: number; badge?: string }) => (
     <h3 className="flex items-center gap-[var(--sp-space-2x)] m-0 px-[var(--sp-space-1x)]">
