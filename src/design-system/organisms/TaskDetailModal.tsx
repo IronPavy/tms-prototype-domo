@@ -92,10 +92,7 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
             ) : (
               <DetailRow label="Zugewiesen an">
                 <span className="flex items-center gap-[var(--sp-space-2x)]">
-                  <span className="flex flex-col min-w-0">
-                    <span className="truncate">{task.person}</span>
-                    {task.team && <span className="sp-text-small text-sp-text-label truncate">{task.team}</span>}
-                  </span>
+                  <span className="min-w-0">{[...(task.shifts?.length && task.person === task.shifts[0].name ? [] : [task.person]), ...(task.others ?? []).map((o) => o.name), ...(task.shifts ?? []).map((s) => `${s.name} · ${s.group}`)].join(", ")}</span>
                 </span>
               </DetailRow>
             )}

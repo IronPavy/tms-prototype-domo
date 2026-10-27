@@ -185,6 +185,28 @@ export function resolveRecipient(id: string): { kind: "person" | "shift"; label:
   if (sh) return { kind: "shift", label: sh.label, team: "Dienstplan", location: sh.location };
 }
 
+/** Who a task goes to, as the list shows it: first person under the name + "+N" with the other people, the shifts (first one as pill + name, rest "+N") */
+export function assignment(ids: string[]): Pick<TaskRowData, "person" | "team" | "location" | "others" | "shifts"> {
+  const people = ids.flatMap((i) => PEOPLE.find((x) => x.id === i) ?? []);
+  const shifts = ids.flatMap((i) => SHIFTS.find((x) => x.id === i) ?? []);
+  const first = people[0];
+  return {
+    person: first?.label ?? shifts[0]?.name ?? "—",
+    team: first?.team ?? (shifts[0] ? "Dienstplan" : ""),
+    location: LOCATIONS.find((l) => l.id === (first?.location ?? shifts[0]?.location))?.label,
+    others: people.length > 1 ? people.slice(1).map((p) => ({ name: p.label, sub: p.team })) : undefined,
+    shifts: shifts.length ? shifts.map((s) => ({ name: s.name, group: s.group, code: s.code, color: s.color })) : undefined,
+  };
+}
+
+/** recipient ids of an existing task (Edit task) — the inverse of `assignment` */
+export function recipientIds(t: Pick<TaskRowData, "person" | "others" | "shifts">): string[] {
+  const person = PEOPLE.find((p) => t.person.startsWith(p.label));
+  const others = (t.others ?? []).flatMap((o) => PEOPLE.find((p) => p.label === o.name)?.id ?? []);
+  const shifts = (t.shifts ?? []).flatMap((s) => SHIFTS.find((x) => x.name === s.name && x.group === s.group)?.id ?? []);
+  return [...(person ? [person.id] : []), ...others, ...shifts];
+}
+
 /* ─── Needs your attention ───────────────────────────────────── */
 
 const pad = (n: number) => String(n).padStart(2, "0");

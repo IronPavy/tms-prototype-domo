@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button, Modal, NewTaskModal, TaskDetailModal, Toast, type TaskAction, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type SubFile, type TaskGroup, type TaskRowData } from "@/design-system";
 import { addDays, sameDay, startOfDay } from "@/design-system/utils/date";
-import { ALL_SCOPE, LOCATIONS, PEOPLE, SHIFTS, TODAY, compareDue, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
+import { ALL_SCOPE, TODAY, assignment, compareDue, recipientIds, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
 import { useScope } from "./scope";
 
 export interface CreatedTask { task: TaskRowData; day: Date }
@@ -44,8 +44,6 @@ const SEED_DRAFTS: Draft[] = [
 
 /** Task row from the modal values — due in the past = overdue, else open */
 function buildTask(v: NewTaskValues, id: string): CreatedTask {
-  const picked = v.recipients.flatMap((r) => resolveRecipient(r) ?? []);
-  const first = picked[0];
   const dd = v.due;
   const due = new Date(`${dd.start}T${dueClock(dd)}`);
   const day = startOfDay(due);
@@ -57,8 +55,7 @@ function buildTask(v: NewTaskValues, id: string): CreatedTask {
     day,
     task: {
       id, title: v.title.trim(), high: v.priority, recurring: dd.repeat !== "none", schedule: scheduleLabel(dd), tags: [],
-      person: first ? `${first.label}${picked.length > 1 ? ` +${picked.length - 1}` : ""}` : "—",
-      team: first?.team ?? "", location: LOCATIONS.find((l) => l.id === first?.location)?.label,
+      ...assignment(v.recipients),
       subtasks: subtasks || undefined, subtaskItems: subtasks ? subtaskItems : undefined, description: v.description.trim() || undefined, createdBy: ME, createdAt: stamp(now),
       due: { date: `${pad(due.getDate())}.${pad(due.getMonth() + 1)}.${String(due.getFullYear()).slice(2)}`, time: dd.timeMode === "allday" ? "ganztägig" : dd.timeMode === "range" ? `${dd.from}–${dd.to}` : dd.time },
       proof: v.proof, status: due < now ? "overdue" : "open", comments: undefined,
@@ -69,13 +66,12 @@ function buildTask(v: NewTaskValues, id: string): CreatedTask {
 /** New task form values of an existing task (Edit task) */
 function valuesFromTask(t: TaskRowData): NewTaskValues {
   const base = emptyTask(TODAY);
-  const person = PEOPLE.find((p) => t.person.startsWith(p.label)) ?? SHIFTS.find((s) => s.label === t.person);
   const [d, m, y] = t.due.date.split(".").map(Number);
   const repeat = !t.recurring ? "none" : t.schedule.startsWith("Täglich") ? "daily" : t.schedule.startsWith("Wöchentlich") ? "weekly" : t.schedule.startsWith("Monatlich") ? "monthly" : "yearly";
   const clock = /^\d{2}:\d{2}$/.test(t.due.time) ? t.due.time : "17:00";
   return {
     ...base,
-    recipients: person ? [person.id] : [],
+    recipients: recipientIds(t),
     title: t.title,
     description: t.description ?? "",
     due: { ...base.due, repeat, start: `${2000 + y}-${pad(m)}-${pad(d)}`, timeMode: /ganz|all day/i.test(t.due.time) ? "allday" : "time", time: clock },
@@ -190,8 +186,6 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   };
   const saveEdit = (v: NewTaskValues) => {
     if (!cur) return;
-    const picked = v.recipients.flatMap((r) => resolveRecipient(r) ?? []);
-    const first = picked[0];
     const [y, m, d] = v.due.start.split("-");
     const old = cur.subtaskItems ?? [];
     const items = v.subtasks.filter((x) => x.trim()).map((title, i) => ({ id: old.find((o) => o.title === title)?.id ?? `${cur.id}-e${i}`, title }));
@@ -200,7 +194,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
       [cur.id]: {
         ...e[cur.id],
         title: v.title.trim(), description: v.description.trim() || undefined, high: v.priority, proof: v.proof,
-        ...(first ? { person: `${first.label}${picked.length > 1 ? ` +${picked.length - 1}` : ""}`, team: first.team } : {}),
+        ...(v.recipients.length ? (({ person, team, others, shifts }) => ({ person, team, others, shifts }))(assignment(v.recipients)) : {}),
         recurring: v.due.repeat !== "none", schedule: scheduleLabel(v.due),
         due: { date: `${d}.${m}.${y.slice(2)}`, time: v.due.timeMode === "allday" ? "ganztägig" : v.due.timeMode === "range" ? `${v.due.from}–${v.due.to}` : v.due.time },
         subtasks: items.length || undefined, subtaskItems: items.length ? items : undefined,

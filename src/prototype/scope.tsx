@@ -35,6 +35,14 @@ export function ScopeFilters() {
   return (
     <div className="flex items-center gap-[var(--sp-space-2x)]">
       <MultiSelectDropdown
+        label="Standort"
+        icon="marker"
+        allLabel="Alle Standorte"
+        options={locationsInGroups(scope.groups).map(({ id, label }) => ({ id, label }))}
+        value={scope.locations}
+        onChange={(locations) => setScope({ ...scope, locations })}
+      />
+      <MultiSelectDropdown
         label="Gruppen"
         icon="user_group"
         allLabel="Alle Gruppen"
@@ -44,14 +52,6 @@ export function ScopeFilters() {
           groups,
           locations: scope.locations.filter((id) => locationsInGroups(groups).some((l) => l.id === id)),
         })}
-      />
-      <MultiSelectDropdown
-        label="Standort"
-        icon="marker"
-        allLabel="Alle Standorte"
-        options={locationsInGroups(scope.groups).map(({ id, label }) => ({ id, label }))}
-        value={scope.locations}
-        onChange={(locations) => setScope({ ...scope, locations })}
       />
     </div>
   );

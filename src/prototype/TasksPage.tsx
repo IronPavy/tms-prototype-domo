@@ -4,6 +4,7 @@ import {
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { clampRange } from "@/design-system/utils/date";
+import { DATE_PRESETS } from "@/design-system/utils/datePresets";
 import { TODAY, compareDue, dueDateKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
 import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
@@ -36,6 +37,12 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const { range: periodRange, setRange, pendingStatus, setPendingStatus } = usePeriod();
   // the future cannot be looked at: the period ends today at the latest (date picker disables later days)
   const range = clampRange(periodRange, TODAY);
+  // opening Aufgaben starts on "Dieser Monat": the 1st until today
+  useEffect(() => {
+    const month = DATE_PRESETS.find((p) => p.id === "thisMonth")!;
+    setRange(clampRange(month.range(TODAY), TODAY));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // search: `draft` is what is typed, `query` the applied search (Enter, at least 3 characters)
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");

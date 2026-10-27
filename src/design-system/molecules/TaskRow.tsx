@@ -148,6 +148,8 @@ export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?
   const sol = SOLUTION[task.proof];
   const subs = task.subtaskItems ?? [];
   const subsDone = subs.filter((s) => s.done).length;
+  /** assigned to shifts only — no employee name above the shift pill */
+  const shiftOnly = !!task.shifts?.length && task.person === task.shifts[0].name;
   return (
     <div
       role="button"
@@ -175,19 +177,19 @@ export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?
 
       {/* assignee */}
       <span className="flex flex-col gap-[var(--sp-space-1x)] min-w-0">
-        <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
-          <TextHint text={task.person} max={30} className="sp-text-standard text-sp-text" />
-          {!!task.others?.length && <MorePill names={task.others.map((o) => o.name)} />}
-        </span>
+        {!shiftOnly && (
+          <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
+            <TextHint text={task.person} max={30} className="sp-text-standard text-sp-text" />
+            {!!task.others?.length && <MorePill names={task.others.map((o) => o.name)} />}
+          </span>
+        )}
         {task.shifts?.length ? (
           <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
             <ShiftPill code={task.shifts[0].code} color={task.shifts[0].color} />
             <TextHint text={task.shifts[0].name} className="sp-text-small text-sp-text-label" />
             {task.shifts.length > 1 && <MorePill names={task.shifts.slice(1).map((s) => `${s.name} · ${s.group}`)} />}
           </span>
-        ) : (
-          <TextHint text={task.team} className="sp-text-small text-sp-text-label" />
-        )}
+        ) : null}
       </span>
 
       {/* due — pill in the status colour with the status icon; tooltip = status in words */}
