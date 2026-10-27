@@ -1,6 +1,4 @@
-import { Fragment, useState, type ReactNode } from "react";
-import { Button } from "../atoms/Button";
-import { Icon } from "../atoms/Icon";
+import { Fragment, type ReactNode } from "react";
 import { StatusChip } from "../atoms/StatusChip";
 import { EmptyState } from "../molecules/EmptyState";
 import { TaskRow, type TaskRowData } from "../molecules/TaskRow";
@@ -24,33 +22,22 @@ export interface TaskListByDayProps {
   /** every day of the period, oldest → newest */
   days: DayGroup[];
   today: Date;
-  /** past days folded into "Vergangene Tage" — open / closed (kept by the host until the period changes) */
-  pastOpen: boolean;
-  onTogglePast: () => void;
   onOpen?: (task: TaskRowData) => void;
   /** three-dot menu of a row */
   onAction?: (action: TaskAction, task: TaskRowData) => void;
-  /** fold past days into "Vergangene Tage" (default true; off for the Handlungsbedarf tab) */
-  foldPast?: boolean;
 }
-
-const pad = (n: number) => String(n).padStart(2, "0");
-const short = (d: Date) => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.`;
 
 const ROWS_CARD = "overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius-3x)]";
 
 /** List view grouped by day — pinned sections "Überfällig" and "Ohne Fälligkeit" first, then the days oldest → newest.
     · day header: label (Roboto Medium) · "HEUTE" Badge Notification on today · count = neutral Badge Chip (full number of the day)
     · only days that have tasks are shown (no empty days, no "Keine Aufgaben")
-    · past days (period contains today): ONE line "Vergangene Tage" (arrow, dates, count) right above today — click opens them
+    · all days of the period are listed in order, from the first selected day to the last (no folding of past days)
     · every task of a day is listed (no "load more" — the page scrolls)
     Cards = SP3 "Card" Filled (surface/raised, radius 3x); empty pinned sections use the SP3 Empty State (Small). */
-export function TaskListByDay({ overdue, noDue, days, today, pastOpen, onTogglePast, onOpen, onAction, foldPast = true }: TaskListByDayProps) {
+export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }: TaskListByDayProps) {
   // days without tasks are never shown (filters / search leave only what has data)
   const filled = days.filter((d) => d.tasks.length);
-  const hasToday = foldPast && days.some((d) => sameDay(d.date, today));
-  const past = hasToday ? filled.filter((d) => d.date < today && !sameDay(d.date, today)) : [];
-  const rest = hasToday ? filled.filter((d) => !past.includes(d)) : filled;
 
   const Header = ({ children, tone = "default", count, badge }: { children: ReactNode; tone?: "default" | "error"; count: number; badge?: string }) => (
     <h3 className="flex items-center gap-[var(--sp-space-2x)] m-0 px-[var(--sp-space-1x)]">
@@ -93,31 +80,12 @@ export function TaskListByDay({ overdue, noDue, days, today, pastOpen, onToggleP
     );
   };
 
-  const pastCount = past.reduce((n, d) => n + d.tasks.length, 0);
-
   return (
     <div className="flex flex-col gap-[var(--sp-space-4x)]">
       {!!overdue?.length && pinned("Überfällig", "error", overdue, "Keine überfälligen Aufgaben", "check")}
       {!!noDue?.length && pinned("Ohne Fälligkeit", "default", noDue, "Keine Aufgaben ohne Fälligkeit", "cal")}
 
-      {past.length > 0 && (
-        <>
-          <button
-            type="button"
-            aria-expanded={pastOpen}
-            onClick={onTogglePast}
-            className="flex items-center gap-[var(--sp-space-2x)] w-full h-10 px-[var(--sp-space-3x)] border-0 bg-sp-surface-raised rounded-[var(--sp-radius-3x)] text-left cursor-pointer outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)]"
-          >
-            <Icon name="expanded" color="var(--sp-icon)" className={pastOpen ? "" : "-rotate-90"} />
-            <span className="sp-text-medium text-sp-text-title">Vergangene Tage</span>
-            <span className="sp-text-small text-sp-text-label">{short(past[0].date)} – {short(past[past.length - 1].date)}</span>
-            <StatusChip tone="default" label={String(pastCount)} />
-          </button>
-          {pastOpen && past.map(day)}
-        </>
-      )}
-
-      {rest.map(day)}
+      {filled.map(day)}
     </div>
   );
 }

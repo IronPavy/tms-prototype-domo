@@ -42,9 +42,6 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const [tooShort, setTooShort] = useState(false);
   const [type, setType] = useState("all");
   const [dueFilter, setDueFilter] = useState("all");
-  // past days folded into one line "Vergangene Tage" — stays open until the period changes or the page is left
-  const [pastOpen, setPastOpen] = useState(false);
-  useEffect(() => { setPastOpen(false); }, [range.start.getTime(), range.end.getTime()]);
   // the chosen view is remembered (default: list)
   const [view, setViewState] = useState(() => { try { return localStorage.getItem("aufgaben-view") ?? "list"; } catch { return "list"; } });
   const setView = (v: string) => { setViewState(v); try { localStorage.setItem("aufgaben-view", v); } catch { /* storage blocked */ } };
@@ -235,11 +232,8 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           noDue={!isAction && dueFilter !== "with" ? noDueTasks : null}
           days={listDays}
           today={TODAY}
-          pastOpen={pastOpen}
-          onTogglePast={() => setPastOpen((o) => !o)}
           onOpen={openDetail}
           onAction={taskAction}
-          foldPast={!isAction}
         />
       ) : listTab && shownView === "cards" ? (
         <TaskCardGrid groups={groups} onOpen={openDetail} />
