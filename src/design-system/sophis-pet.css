@@ -150,6 +150,7 @@
   /* ── Spacing & Size ── */
   --sp-space-0: 0; /* Spacing & Size/0 */
   --sp-space-1x: 4px; /* Spacing & Size/1x */
+  --sp-space-2xs: 6px; /* Spacing & Size/2XS (SP3 library variable, used by Tab Item padding-block) */
   --sp-space-2x: 8px; /* Spacing & Size/2x */
   --sp-space-3x: 12px; /* Spacing & Size/3x */
   --sp-space-4x: 16px; /* Spacing & Size/4x */

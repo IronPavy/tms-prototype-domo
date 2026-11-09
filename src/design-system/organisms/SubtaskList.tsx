@@ -4,7 +4,7 @@ import { ProgressBar } from "../atoms/ProgressBar";
 import { Tooltip } from "../atoms/Tooltip";
 import { FileDropZone } from "../molecules/FileDropZone";
 import { TextHint } from "../molecules/TextHint";
-import { TONES, cssVar } from "../utils/tones";
+import { UploadFileList } from "../molecules/UploadFileRow";
 import type { SubtaskItem, TaskFile } from "../molecules/TaskRow";
 
 /** a file added to a camera / attachment subtask in this session */
@@ -21,10 +21,12 @@ export interface SubtaskListProps {
   onAddFiles: (id: string, files: File[]) => void;
   /** open file `index` of a subtask in the viewer (the viewer shows all files of that subtask) */
   onOpenFile?: (id: string, index: number) => void;
+  /** library template: no status, no actions */
+  readOnly?: boolean;
 }
 
 const ACTION: Record<"check" | "photo" | "attachment", { icon: IconName; open: string; noun: string; hint?: string }> = {
-  check: { icon: "check", open: "Als erledigt markieren", noun: "" },
+  check: { icon: "check_circle", open: "Als erledigt markieren", noun: "" },
   photo: { icon: "camera", open: "Foto hinzufügen", noun: "Fotos", hint: "Nur Bilder, mehrere möglich" },
   attachment: { icon: "attachment", open: "Datei hinzufügen", noun: "Dateien", hint: "Mehrere möglich" },
 };
@@ -56,83 +58,46 @@ function IconAction({ label, icon, done, onClick, disabled }: { label: string; i
   );
 }
 
-/** Step number: 24px circle, neutral (open) or success (done). */
-function StepNumber({ n, done }: { n: number; done: boolean }) {
-  const tone = TONES[done ? "success" : "default"];
-  return (
-    <span
-      aria-hidden
-      className="flex items-center justify-center shrink-0 size-6 rounded-full border border-solid sp-text-small-medium tabular-nums text-sp-text"
-      style={{ background: cssVar(tone.bg), borderColor: cssVar(tone.border) }}
-    >
-      {n}
-    </span>
-  );
-}
-
-/** File chip under the subtask text: Badge-Chip look (neutral light fill + border, radius 2x, 24px) — thumbnail (photo) or document icon
-    + name cut with "…"; click opens the viewer on this file. */
-function FileChip({ file, onClick }: { file: TaskFile; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`${file.name} öffnen`}
-      title={file.name}
-      className="inline-flex items-center gap-[var(--sp-space-1x)] shrink min-w-0 max-w-[200px] h-6 pl-[var(--sp-space-1x)] pr-[var(--tms-space-6px)] bg-sp-neutral-fill-light border border-solid border-sp-neutral-border-light rounded-[var(--sp-radius-2x)] cursor-pointer text-left outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)]"
-    >
-      {file.kind === "image" ? (
-        <img src={file.url} alt="" className="shrink-0 size-4 rounded-[var(--sp-radius-1x)] object-cover" />
-      ) : (
-        <Icon name="page_document" color="var(--sp-icon)" />
-      )}
-      <span className="min-w-0 truncate sp-text-small-medium text-sp-text">{file.name}</span>
-    </button>
-  );
-}
-
-/** Subtasks section of the task detail: header "Unteraufgaben · n von m" + SP3 Progress Bar, one raised card (surface/raised · 1px border
-    line · radius 2x) with one-line rows. Each row: title (line-through + label colour when done) and, at the right end, the resolve icon:
-    check → toggles done · camera → photo drop area (images only) · paper clip → file drop area (SP3 "Upload with Drag & Drop", several files).
-    The first file completes the subtask. Rows are numbered; every file is a small chip under the subtask text
-    (thumbnail / icon + name, click = viewer on that file, which pages through all files of the subtask). 
-    The master cannot remove files. */
-export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFile }: SubtaskListProps) {
+/** Subtasks section of the task detail: heading "Unteraufgaben" + SP3 Progress Bar and "n / m", then one card per
+    subtask — SP3 List Item look (surface/raised · 1px border line · radius 3x · padding 2x / 4x · gap 4x · min height 12x): number (no circle),
+    title (Roboto Medium) and, at the right end, the resolve icon: grey while open, green when done — check → toggles done · camera → photo
+    drop area (images only) · paper clip → file drop area (SP3 "Upload with Drag & Drop", several files). The first file completes the subtask.
+    Handed-in files sit under the title as SP3 "Upload File Row"s (icon · name · size · date · view · download); view = viewer on that file.
+    `readOnly` (library template): icons only, no actions. The master cannot remove files. */
+export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFile, readOnly }: SubtaskListProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const count = items.filter((s) => done.includes(s.id)).length;
 
   return (
     <section aria-label="Unteraufgaben" className="flex flex-col gap-[var(--sp-space-2x)]">
-      <div className="flex flex-col gap-[var(--sp-space-2x)]">
-        <h3 className="m-0 flex items-baseline gap-[var(--sp-space-2x)] sp-text-medium text-sp-text">
-          Unteraufgaben <span className="sp-text-small text-sp-text-label tabular-nums">{count} von {items.length}</span>
-        </h3>
-        <ProgressBar value={count} max={items.length} tone={count === items.length ? "success" : undefined} />
+      <div className="flex items-center justify-between gap-[var(--sp-space-2x)]">
+        <h3 className="m-0 sp-text-medium text-sp-text">Unteraufgaben</h3>
+        {!readOnly && (
+          <span className="flex items-center gap-[var(--sp-space-2x)]" aria-label={`${count} von ${items.length} erledigt`}>
+            <ProgressBar value={count} max={items.length} className="w-[120px]" />
+            <span className="sp-text-medium text-sp-text tabular-nums">{count} / {items.length}</span>
+          </span>
+        )}
       </div>
 
-      <ul className="m-0 p-0 list-none bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-2x)]">
+      <ol className="m-0 p-0 list-none flex flex-col gap-[var(--sp-space-2x)]">
         {items.map((s, i) => {
           const kind = s.proof ?? "check";
           const a = ACTION[kind];
           const isDone = done.includes(s.id);
           const list = files[s.id] ?? [];
-                    const open = openId === s.id && kind !== "check";
+          const open = openId === s.id && kind !== "check";
           return (
-            <li key={s.id} className={`flex flex-col gap-[var(--sp-space-2x)] py-0 pl-[var(--sp-space-3x)] pr-[var(--sp-space-4x)] ${i ? "border-0 border-t border-solid border-sp-neutral-fill-light" : ""}`}>
-              <div className="flex items-center gap-[var(--sp-space-3x)] h-16">
-                <StepNumber n={i + 1} done={isDone} />
-                <div className="flex flex-col justify-center gap-[var(--sp-space-2x)] flex-1 min-w-0">
-                  <TextHint text={s.title} className={`sp-text-standard ${isDone ? "line-through text-sp-text-label" : "text-sp-text"}`} />
-                  {!!list.length && (
-                    <span className="flex gap-[var(--sp-space-2x)] min-w-0">
-                      {list.map((f, k) => <FileChip key={f.id} file={f} onClick={() => onOpenFile?.(s.id, k)} />)}
-                    </span>
-                  )}
-                </div>
-                {isDone ? (
+            <li key={s.id} className="flex flex-col gap-[var(--sp-space-3x)] py-[var(--sp-space-2x)] px-[var(--sp-space-4x)] bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-3x)]">
+              <div className="flex items-center gap-[var(--sp-space-4x)] min-h-[var(--sp-space-8x)]">
+                <span aria-hidden className="shrink-0 sp-text-medium text-sp-text-label tabular-nums">{i + 1}</span>
+                <TextHint text={s.title} className="flex-1 sp-text-medium text-sp-text" />
+                {readOnly ? (
+                  <Icon name={a.icon} size={20} color="var(--sp-icon)" />
+                ) : isDone ? (
                   <IconAction
                     label={kind === "check" ? "Erledigt – klicken zum Wiederöffnen" : `Erledigt · ${a.noun}`}
-                    icon={kind === "check" ? "check" : a.icon}
+                    icon={a.icon}
                     done
                     disabled={kind !== "check"}
                     onClick={() => onToggle(s.id)}
@@ -146,20 +111,29 @@ export function SubtaskList({ items, done, files, onToggle, onAddFiles, onOpenFi
                 )}
               </div>
 
+              {/* results, aligned with the title (number column 4x + gap) */}
+              {!!list.length && (
+                <div className="pl-[var(--sp-space-8x)] pb-[var(--sp-space-2x)]">
+                  <UploadFileList files={list} onOpen={(k) => onOpenFile?.(s.id, k)} />
+                </div>
+              )}
+
               {open && (
-                <FileDropZone
-                  accept={kind === "photo" ? "image/*" : undefined}
-                  noun={a.noun}
-                  hint={a.hint}
-                  multiple
-                  onFiles={(f) => { onAddFiles(s.id, f); setOpenId(null); }}
-                  onCancel={() => setOpenId(null)}
-                />
+                <div className="pb-[var(--sp-space-2x)]">
+                  <FileDropZone
+                    accept={kind === "photo" ? "image/*" : undefined}
+                    noun={a.noun}
+                    hint={a.hint}
+                    multiple
+                    onFiles={(f) => { onAddFiles(s.id, f); setOpenId(null); }}
+                    onCancel={() => setOpenId(null)}
+                  />
+                </div>
               )}
             </li>
           );
         })}
-      </ul>
+      </ol>
     </section>
   );
 }

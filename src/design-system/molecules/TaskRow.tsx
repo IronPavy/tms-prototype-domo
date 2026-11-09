@@ -183,6 +183,10 @@ export function TaskRow({ task, onOpen, onAction }: { task: TaskRowData; onOpen?
             {!!task.others?.length && <MorePill names={task.others.map((o) => o.name)} />}
           </span>
         )}
+        {/* group · location of the employee, small label under the name */}
+        {!shiftOnly && (task.team || task.location) && (
+          <TextHint text={[task.team, task.location].filter(Boolean).join(" · ")} className="sp-text-small text-sp-text-label" />
+        )}
         {task.shifts?.length ? (
           <span className="flex items-center gap-[var(--sp-space-1x)] min-w-0">
             <ShiftPill code={task.shifts[0].code} color={task.shifts[0].color} />

@@ -5,7 +5,7 @@ import {
 } from "@/design-system";
 import { clampRange } from "@/design-system/utils/date";
 import { DATE_PRESETS } from "@/design-system/utils/datePresets";
-import { TODAY, compareDue, dueDateKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
+import { TODAY, dueDateKey, dueSortKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
 import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
 import { useTasks, withCreatedTasks } from "./tasksStore";
@@ -105,8 +105,11 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   // list view: pinned section Ohne Fälligkeit + days oldest → newest (overdue tasks sit on their own day; Handlungsbedarf lists only those)
   const dayGroups = groups.filter((g) => g.date);
   const noDueTasks = groups.find((g) => g.kind === "nodue")?.tasks ?? [];
-  const listDays = dayGroups.map((g) => ({ id: g.id, date: g.date!, label: g.label, tasks: [...g.tasks].sort(compareDue) }));
+  const listDays = dayGroups.map((g) => ({ id: g.id, date: g.date!, label: g.label, tasks: [...g.tasks].sort((a, b) => dueSortKey(b).localeCompare(dueSortKey(a)) || a.title.localeCompare(b.title, "de")) }));
   const filtered = !!q || type !== "all" || dueFilter !== "all";
+  // Vorherige / Nächste in the detail walk the tasks in the order the current view shows them
+  const listOrder = [...(!isAction && dueFilter !== "with" ? noDueTasks : []), ...[...listDays].reverse().flatMap((d) => d.tasks)];
+  const groupOrder = groups.flatMap((g) => g.tasks);
   // number of overdue tasks (with a due date) in the period — badge of the Handlungsbedarf tab
   const actionCount = allGroups.flatMap((g) => g.tasks).filter((t) => t.status === "overdue" && !t.noDue && inScope(scope, t.location) && searchMatch(t)).length;
   // with an applied search the status chips and the Status tab count only the tasks that match the search text
@@ -239,13 +242,13 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           noDue={!isAction && dueFilter !== "with" ? noDueTasks : null}
           days={listDays}
           today={TODAY}
-          onOpen={openDetail}
+          onOpen={(t) => openDetail(t, listOrder)}
           onAction={taskAction}
         />
       ) : listTab && shownView === "cards" ? (
-        <TaskCardGrid groups={groups} onOpen={openDetail} />
+        <TaskCardGrid groups={groups} onOpen={(t) => openDetail(t, groupOrder)} />
       ) : listTab && shownView === "calendar" ? (
-        <TaskCalendar groups={groups} today={TODAY} onOpen={openDetail} />
+        <TaskCalendar groups={groups} today={TODAY} onOpen={(t) => openDetail(t, groupOrder)} />
       ) : tab === "drafts" && !drafts.length ? (
         <div className="flex justify-center py-[var(--sp-space-6x)]"><EmptyTasks /></div>
       ) : tab === "drafts" && shownView === "cards" ? (
@@ -285,7 +288,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
         /* Bibliothek — all task templates, with the three-dot menu on every row */
         <LibraryList
           tasks={libTasks}
-          onOpen={openDetail}
+          onOpen={(t) => openDetail(t, libTasks)}
           onAction={taskAction}
           empty={
             <EmptyTasks

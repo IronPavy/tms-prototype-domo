@@ -8,7 +8,7 @@
   /* Raw paddings used by SP3 components that are not variables in the library */
   --tms-space-2px: 2px;   /* Badge padding-block */
   --tms-space-5px: 5px;
-  --tms-space-6px: 6px;   /* Badge padding-inline, Tab Item padding-block */
+  --tms-space-6px: var(--sp-space-2xs);   /* Badge padding-inline, Tab Item padding-block = SP3 Spacing & Size/2XS */
   --tms-space-sm: 14px;   /* Foundation file "Spacing & Size/SM" */
 
   /* Header search field on header-background (SP3 "Header Search" not mapped yet) */

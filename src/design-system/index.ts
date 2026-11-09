@@ -55,6 +55,7 @@ export * from "./molecules/TaskRowMenu";
 export * from "./molecules/TextHint";
 export * from "./molecules/HistoryTimeline";
 export * from "./molecules/FileDropZone";
+export * from "./molecules/UploadFileRow";
 export * from "./molecules/LibraryRow";
 export * from "./molecules/ShiftPill";
 export * from "./organisms/FilePreview";

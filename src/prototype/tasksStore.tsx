@@ -14,8 +14,8 @@ interface TasksStore {
   drafts: Draft[];
   openNewTask: (draftId?: string) => void;
   deleteDraft: (id: string) => void;
-  /** open the task detail modal (centred) */
-  openDetail: (task: TaskRowData) => void;
+  /** open the task detail modal (centred); `list` = the tasks of the view it was opened from, in display order (Vorherige / Nächste) */
+  openDetail: (task: TaskRowData, list?: TaskRowData[]) => void;
   /** apply edits made in the detail modal to the groups of the Tasks page */
   withEdits: (groups: TaskGroup[]) => TaskGroup[];
   /** edits + deletions applied to a flat list (Bibliothek) */
@@ -108,6 +108,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   const [counter, setCounter] = useState(1);
   // task detail modal
   const [detail, setDetail] = useState<TaskRowData | null>(null);
+  const [detailList, setDetailList] = useState<TaskRowData[]>([]);
   const [editing, setEditing] = useState(false);
   /** edit opened from the list menu (not from the detail) — closing it returns to the list */
   const [editFromList, setEditFromList] = useState(false);
@@ -129,7 +130,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
     drafts,
     openNewTask: (draftId) => setModal({ draftId }),
     deleteDraft: (id) => setDrafts((d) => d.filter((x) => x.id !== id)),
-    openDetail: (task) => { setEditing(false); setEditFromList(false); setDetail(task); },
+    openDetail: (task, list = []) => { setEditing(false); setEditFromList(false); setDetailList(list); setDetail(task); },
     taskAction: (action, task) => {
       if (action === "copy") setModal({ copy: { ...valuesFromTask({ ...task, ...edits[task.id] }), title: `${(edits[task.id]?.title ?? task.title)} (Kopie)` } });
       else if (action === "edit") { setDetail(task); setEditFromList(true); setEditing(true); }
@@ -149,12 +150,22 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   }), [created, drafts, edits, subState, deleted]);
 
   const send = (v: NewTaskValues) => {
-    const built = buildTask(v, `new-${counter}`);
+    // every selected employee gets a task of their own; the selected shifts share one task
+    const people = v.recipients.filter((i) => resolveRecipient(i)?.kind === "person");
+    const shifts = v.recipients.filter((i) => resolveRecipient(i)?.kind === "shift");
+    const sets = [...people.map((p) => [p]), ...(shifts.length ? [shifts] : [])];
+    const built = (sets.length ? sets : [v.recipients]).map((r, i) => buildTask({ ...v, recipients: r }, `new-${counter}-${i}`));
+    const ids = built.map((b) => b.task.id);
     setCounter((c) => c + 1);
-    setCreated((c) => [...c, built]);
+    setCreated((c) => [...c, ...built]);
     if (modal?.draftId) setDrafts((d) => d.filter((x) => x.id !== modal.draftId));
     setModal(null);
-    setToast({ id: built.task.id, message: `Task “${built.task.title}” created.`, undo: () => { setCreated((c) => c.filter((x) => x.task.id !== built.task.id)); setToast(null); } });
+    const title = built[0].task.title;
+    setToast({
+      id: ids[0],
+      message: built.length > 1 ? `${built.length} Aufgaben „${title}“ erstellt – eine pro Empfänger.` : `Task “${title}” created.`,
+      undo: () => { setCreated((c) => c.filter((x) => !ids.includes(x.task.id))); setToast(null); },
+    });
   };
   const saveDraft = (v: NewTaskValues) => {
     const id = modal?.draftId ?? `d-${Date.now()}`;
@@ -165,6 +176,10 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   };
 
   const cur = detail ? { ...detail, ...edits[detail.id] } : null;
+  // neighbours in the list the detail was opened from
+  const at = cur ? detailList.findIndex((t) => t.id === cur.id) : -1;
+  const prevTask = at > 0 ? detailList[at - 1] : undefined;
+  const nextTask = at >= 0 && at < detailList.length - 1 ? detailList[at + 1] : undefined;
   const doneIds = cur ? (cur.subtaskItems ?? []).filter((x) => subState[cur.id]?.[x.id]?.done ?? x.done).map((x) => x.id) : [];
   const subFiles: Record<string, SubFile[]> = {};
   Object.entries(cur ? subState[cur.id] ?? {} : {}).forEach(([k, v]) => { if (v.files?.length) subFiles[k] = v.files; });
@@ -231,6 +246,9 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           onToggleSubtask={toggleSubtask}
           onAddSubtaskFiles={addSubtaskFiles}
           extraHistory={events[cur.id]}
+          onPrev={prevTask ? () => setDetail(prevTask) : undefined}
+          onNext={nextTask ? () => setDetail(nextTask) : undefined}
+          position={at >= 0 ? { index: at + 1, total: detailList.length } : undefined}
           onClose={() => setDetail(null)}
         />
       )}

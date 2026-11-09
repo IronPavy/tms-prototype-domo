@@ -1,6 +1,7 @@
 import { Icon } from "../atoms/Icon";
 import { TextHint } from "../molecules/TextHint";
 import type { TaskFile } from "../molecules/TaskRow";
+import { fileSize } from "../molecules/UploadFileRow";
 
 export interface TaskFilesProps {
   /** attachment or camera task */
@@ -10,8 +11,6 @@ export interface TaskFilesProps {
   person: string;
   onOpen: (index: number) => void;
 }
-
-export const fileSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 /** "Anhänge" / "Fotos" of an attachment or camera task: what the employee handed in. One raised card (surface/raised · 1px border line ·
     radius 2x), a row per file in the "Upload File Row" style — thumbnail (photo) or document tile · name · "Person · time" · size ·
