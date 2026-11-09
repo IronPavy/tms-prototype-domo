@@ -145,7 +145,7 @@ export function Tags({ tags }: { tags: string[] }) {
     DueDateChip: status colour + status icon (check · folder · warning), tooltip with the status in words
     (done: "Erledigt am … von …") · subtasks "2/5" with tooltip · solution type icon (20px) with Tooltip. */
 /** selection checkbox at the end of the row (bulk delete) — replaces the delete icon */
-export interface RowSelect { checked: boolean; onChange: () => void; disabled?: boolean; disabledHint?: string }
+export interface RowSelect { checked: boolean; onChange: () => void; disabled?: boolean; disabledHint?: string; /** normal list: delete icon that starts the selection mode */ trash?: boolean }
 
 export function TaskRow({ task, onOpen, onAction, select }: { task: TaskRowData; onOpen?: () => void; onAction?: (action: TaskAction) => void; select?: RowSelect }) {
   const st = TASK_STATUS[task.status];
@@ -160,7 +160,7 @@ export function TaskRow({ task, onOpen, onAction, select }: { task: TaskRowData;
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen?.(); }}
-      className={`${TASK_GRID} relative h-[76px] px-[var(--sp-space-4x)] cursor-pointer outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)] ${select?.checked ? "bg-sp-selected" : ""}`}
+      className={`${TASK_GRID} relative h-[76px] px-[var(--sp-space-4x)] cursor-pointer outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)] ${select?.checked && !select.trash ? "bg-sp-selected" : ""}`}
     >
       {task.status === "overdue" && <span aria-hidden className="absolute left-0 inset-y-0 w-1 bg-sp-danger-fill-normal" />}
 
@@ -232,7 +232,7 @@ export function TaskRow({ task, onOpen, onAction, select }: { task: TaskRowData;
 
       {/* selection checkbox (bulk delete) — or the delete icon (red on hover, tooltip, the host asks for confirmation) */}
       {select ? (
-        <RowSelectBox checked={select.checked} onChange={select.onChange} disabled={select.disabled} disabledHint={select.disabledHint} label={`Aufgabe „${task.title}“ auswählen`} />
+        <RowSelectBox checked={select.checked} onChange={select.onChange} disabled={select.disabled} disabledHint={select.disabledHint} trash={select.trash} label={select.trash ? `Aufgabe „${task.title}“ löschen` : `Aufgabe „${task.title}“ auswählen`} />
       ) : onAction ? <RowDeleteButton title={task.title} onClick={() => onAction("delete")} /> : <span />}
     </div>
   );

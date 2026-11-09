@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, ScrollTopButton, SearchField, useScrollArea, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
+  Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, RowSelectBox, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { clampRange } from "@/design-system/utils/date";
@@ -117,7 +117,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   // endless list, like the live app: the first PAGE tasks, then the next page while scrolling to the end
   const [shown, setShown] = useState(PAGE);
   const listKey = [tab, [...active].join(), type, dueFilter, query, JSON.stringify(range), JSON.stringify(scope), shownView].join("|");
-  useEffect(() => { setShown(PAGE); setSelected([]); }, [listKey]);
+  useEffect(() => { setShown(PAGE); setSelected([]); setSelectMode(false); }, [listKey]);
   const loadRef = useRef<HTMLDivElement>(null);
   const more = shown < listOrder.length;
   useEffect(() => {
@@ -136,17 +136,53 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const noDueShown = (!isAction && dueFilter !== "with" ? noDueTasks : []).slice(0, Math.max(0, budget)); budget -= noDueShown.length;
   const daysShown = [...listDays].reverse().map((d) => { const tasks = d.tasks.slice(0, Math.max(0, budget)); budget -= tasks.length; return { ...d, tasks, total: d.tasks.length }; }).reverse();
 
-  // bulk delete: tick open / overdue tasks (done ones keep their proof) — only what is loaded, no "select all"
+  // bulk delete — normal list: delete icon per row; a click starts the selection mode with that row ticked.
+  // Selection mode: checkboxes on the rows and day headers, "Alle geladenen auswählen" + actions at the top right. Done tasks (with
+  // proof) are never ticked; "select all" only covers what is loaded, a day checkbox loads the rest of that day first.
+  const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const barShown = selected.length > 0 && listTab && shownView === "list";
-  const area = useScrollArea(pageRef);
+  const deletable = (t: TaskRowData) => t.status !== "done";
+  const exitSelect = () => { setSelectMode(false); setSelected([]); };
+  const loadedTasks = [...noDueShown, ...[...daysShown].reverse().flatMap((d) => d.tasks)];
+  const loadedFree = loadedTasks.filter(deletable);
   const selectedTasks = listOrder.filter((t) => selected.includes(t.id));
+  const toggleIds = (ids: string[], on: boolean) => setSelected((s) => (on ? [...new Set([...s, ...ids])] : s.filter((x) => !ids.includes(x))));
+  const stateOf = (ids: string[]) => { const n = ids.filter((i) => selected.includes(i)).length; return n === 0 ? "none" as const : n === ids.length ? "all" as const : "some" as const; };
+  const allState = stateOf(loadedFree.map((t) => t.id));
   const rowSelect = (t: TaskRowData) => ({
+    trash: !selectMode,
     checked: selected.includes(t.id),
-    disabled: t.status === "done",
+    disabled: !deletable(t),
     disabledHint: "Erledigte Aufgaben mit Nachweis können nicht gelöscht werden",
-    onChange: () => setSelected((s) => (s.includes(t.id) ? s.filter((x) => x !== t.id) : [...s, t.id])),
+    onChange: () => {
+      if (!selectMode) { setSelectMode(true); setSelected([t.id]); return; }
+      toggleIds([t.id], !selected.includes(t.id));
+    },
   });
+  const selectDay = (dayId: string) => {
+    if (!selectMode) return null;
+    const full = dayId === "nodue" ? noDueTasks : listDays.find((d) => d.id === dayId)?.tasks ?? [];
+    const ids = full.filter(deletable).map((t) => t.id);
+    if (!ids.length) return null;
+    const state = stateOf(ids);
+    return {
+      state,
+      onChange: () => {
+        if (state !== "all") {
+          // a partly loaded day: load the rest of it first, then tick all of it
+          const last = Math.max(...full.map((t) => listOrder.indexOf(t)));
+          setShown((n) => Math.max(n, last + 1));
+        }
+        toggleIds(ids, state !== "all");
+      },
+    };
+  };
+  useEffect(() => {
+    if (!selectMode) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !document.querySelector("[role=dialog]")) exitSelect(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectMode]);
   // number of overdue tasks (with a due date) in the period — badge of the Handlungsbedarf tab
   const actionCount = allGroups.flatMap((g) => g.tasks).filter((t) => t.status === "overdue" && !t.noDue && inScope(scope, t.location) && searchMatch(t)).length;
   // with an applied search the status chips and the Status tab count only the tasks that match the search text
@@ -247,6 +283,19 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           />
           {tab === "library" && <LibraryFilter shifts={libTree.shifts} employees={libTree.employees} frequencies={FREQUENCIES} value={libFilter} onApply={setLibFilter} />}
           {tooShort && <span role="alert" className="sp-text-small text-sp-danger-on-surface">Bitte mindestens 3 Zeichen eingeben und Enter drücken.</span>}
+          {/* selection mode (bulk delete): select all loaded · count · Abbrechen · red delete — right end of the search row */}
+          {selectMode && listTab && shownView === "list" && (
+            <div role="toolbar" aria-label="Auswahl" className="ml-auto flex flex-wrap items-center gap-[var(--sp-space-3x)]">
+              <span className="inline-flex items-center pr-[var(--sp-space-2x)]">
+                <RowSelectBox checked={allState === "all"} partial={allState === "some"} onChange={() => toggleIds(loadedFree.map((t) => t.id), allState !== "all")} label="Alle geladenen auswählen" />
+                <span className="sp-text-medium text-sp-text whitespace-nowrap tabular-nums">Alle geladenen auswählen ({loadedFree.length})</span>
+              </span>
+              <span aria-hidden className="w-px h-6 bg-sp-border-line" />
+              <span className="sp-text-medium text-sp-text whitespace-nowrap tabular-nums">{selected.length} ausgewählt</span>
+              <Button variant="secondary" label="Abbrechen" onClick={exitSelect} />
+              <Button variant="primary" danger icon="delete" label={`${selected.length} löschen`} disabled={!selected.length} onClick={() => deleteTasks(selectedTasks, exitSelect)} />
+            </div>
+          )}
           {/* Bibliothek: view switch at the right end of the search row */}
           {tab === "library" && (
             <div className="ml-auto">
@@ -282,6 +331,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           today={TODAY}
           onOpen={(t) => openDetail(t, listOrder)}
           select={rowSelect}
+          selectDay={selectDay}
           footer={more && (
             <div ref={loadRef} className="flex items-center justify-center gap-[var(--sp-space-2x)] p-[var(--sp-space-4x)] sp-text-standard text-sp-text-label">
               <Icon name="refresh" color="var(--sp-icon)" />Weitere Aufgaben werden geladen …
@@ -341,24 +391,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           }
         />
       )}
-      {/* bulk delete: floating action bar while tasks are ticked (filters stay visible) — "Nach oben" floats above it */}
-      {barShown && (
-        <>
-          <div aria-hidden className="h-[var(--sp-space-16x)]" />
-          <div
-            role="toolbar"
-            aria-label="Auswahl"
-            style={area.left ? { left: area.left } : undefined}
-            className="fixed bottom-[var(--sp-space-6x)] left-1/2 -translate-x-1/2 z-[55] flex items-center gap-[var(--sp-space-3x)] py-[var(--sp-space-2x)] pl-[var(--sp-space-4x)] pr-[var(--sp-space-2x)] bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-3x)] shadow-[var(--sp-shadow-m)]"
-          >
-            <span className="sp-text-medium text-sp-text whitespace-nowrap tabular-nums">{selected.length} ausgewählt</span>
-            <span aria-hidden className="w-px h-6 bg-sp-border-line" />
-            <Button variant="tertiary" label="Auswahl aufheben" onClick={() => setSelected([])} />
-            <Button variant="primary" danger icon="delete" label={`${selected.length} löschen`} onClick={() => deleteTasks(selectedTasks, () => setSelected([]))} />
-          </div>
-        </>
-      )}
-      <ScrollTopButton anchorRef={pageRef} raised={barShown} />
+<ScrollTopButton anchorRef={pageRef} />
     </div>
   );
 }
