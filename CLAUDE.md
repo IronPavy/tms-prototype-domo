@@ -124,9 +124,6 @@ Earlier work lives in `C:\Users\Pavo\Desktop\New Task Managment`
 (`src/design-system/` = Task Card; `src/SophisPetQ22024Copy/styles.css` = the library variable export used by
 `scripts/figma/gen-tokens.mjs`). Only bring files over from there when explicitly asked.
 
-## Review comments (stakeholder feedback)
-`src/review/` — shown only when `VITE_REVIEW=1`. **C** = comment mode (click anywhere to place a comment), **Shift+C** = show / hide all, Esc leaves. Name is asked once and kept in localStorage. A pin is anchored to the clicked element (`anchor.ts`: child-index path + click fraction, viewport fallback) and belongs to one sidebar page. Storage (`store.ts`): Supabase when `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are set (table + RLS in `supabase/schema.sql`, anonymous sign-in, realtime), otherwise localStorage. Deploy: Vercel (`vercel.json`), env vars as in `.env.example`.
-
 ## Task detail modal
 `organisms/TaskDetailModal.tsx` (+ `molecules/DetailRow`, `HistoryTimeline`): clicking a task (Tasks List / Cards / Calendar, Dashboard attention / Today / Coming up rows) opens it centred. Chips: status · solution type (none with subtasks) · tags · priority; tabs Details / Discussion (n); Subtasks are tickable and add history entries; Discussion takes comments; "Edit task" opens `NewTaskModal mode="edit"` prefilled and Save updates the task (`edits` in `prototype/tasksStore.tsx`, applied with `withEdits`). Dashboard rows are mapped to tasks by `detailTask` / `taskFromAttention|Shift|Upcoming` in `data.ts`. State is prototype-only (lost on reload). "Library task" row is left out until the Library has content.
 

@@ -22,6 +22,8 @@ interface TasksStore {
   withEditsList: (tasks: TaskRowData[]) => TaskRowData[];
   /** three-dot menu of a list row: copy (new task from this one) · edit · delete (asks first) */
   taskAction: (action: TaskAction, task: TaskRowData) => void;
+  /** bulk delete (asks first, undo in the toast) — `onDeleted` runs after confirming (clear the selection) */
+  deleteTasks: (tasks: TaskRowData[], onDeleted?: () => void) => void;
   /** recipients as names, for the Drafts list */
   recipientNames: (ids: string[]) => string;
 }
@@ -103,7 +105,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
   const [drafts, setDrafts] = useState<Draft[]>(SEED_DRAFTS);
   const [modal, setModal] = useState<{ draftId?: string; copy?: NewTaskValues } | null>(null);
   const [deleted, setDeleted] = useState<string[]>([]);
-  const [confirmDelete, setConfirmDelete] = useState<TaskRowData | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ tasks: TaskRowData[]; onDeleted?: () => void } | null>(null);
   const [toast, setToast] = useState<{ id: string; message: string; undo?: () => void; noView?: boolean } | null>(null);
   const [counter, setCounter] = useState(1);
   // task detail modal
@@ -134,8 +136,9 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
     taskAction: (action, task) => {
       if (action === "copy") setModal({ copy: { ...valuesFromTask({ ...task, ...edits[task.id] }), title: `${(edits[task.id]?.title ?? task.title)} (Kopie)` } });
       else if (action === "edit") { setDetail(task); setEditFromList(true); setEditing(true); }
-      else setConfirmDelete(task);
+      else setConfirmDelete({ tasks: [task] });
     },
+    deleteTasks: (tasks, onDeleted) => { if (tasks.length) setConfirmDelete({ tasks, onDeleted }); },
     withEditsList: (tasks) => tasks.filter((t) => !deleted.includes(t.id)).map((t) => (edits[t.id] ? { ...t, ...edits[t.id] } : t)),
     withEdits: (groups) => groups.map((g) => ({
       ...g,
@@ -263,41 +266,58 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           onClose={() => { setEditing(false); if (editFromList) setDetail(null); }}
         />
       )}
-      {confirmDelete && (
-        <Modal
-          title="Aufgabe löschen?"
-          titleSize="h3"
-          width={440}
-          onClose={() => setConfirmDelete(null)}
-          footer={
-            <>
-              <Button variant="tertiary" label="Abbrechen" onClick={() => setConfirmDelete(null)} />
-              <Button
-                variant="primary"
-                icon="delete"
-                label="Löschen"
-                onClick={() => {
-                  const id = confirmDelete.id;
-                  setDeleted((d) => [...d, id]);
-                  setConfirmDelete(null);
-                  setToast({ id: `del-${id}`, message: `Aufgabe „${confirmDelete.title}“ gelöscht.`, noView: true, undo: () => { setDeleted((d) => d.filter((x) => x !== id)); setToast(null); } });
-                }}
-              />
-            </>
-          }
-        >
-          <p className="m-0 sp-text-body-standard text-sp-text">
-            Möchten Sie die Aufgabe „{confirmDelete.title}“ wirklich löschen? Sie wird aus der Liste entfernt{confirmDelete.status === "done" ? " – einschließlich der abgegebenen Nachweise" : ""}. Direkt danach können Sie das Löschen noch rückgängig machen.
-          </p>
-        </Modal>
-      )}
+      {confirmDelete && (() => {
+        const list = confirmDelete.tasks;
+        const one = list.length === 1 ? list[0] : null;
+        const recurring = list.some((t) => t.recurring && !t.library);
+        const close = () => setConfirmDelete(null);
+        return (
+          <Modal
+            title={one ? "Aufgabe löschen?" : `${list.length} Aufgaben löschen?`}
+            titleSize="h3"
+            width={440}
+            onClose={close}
+            footer={
+              <>
+                <Button variant="tertiary" label="Abbrechen" onClick={close} />
+                <Button
+                  variant="primary"
+                  danger
+                  icon="delete"
+                  label="Löschen"
+                  onClick={() => {
+                    const ids = list.map((t) => t.id);
+                    setDeleted((d) => [...d, ...ids]);
+                    confirmDelete.onDeleted?.();
+                    close();
+                    setToast({
+                      id: `del-${ids.join("-")}`,
+                      message: one ? `Aufgabe „${one.title}“ gelöscht.` : `${list.length} Aufgaben gelöscht.`,
+                      noView: true,
+                      undo: () => { setDeleted((d) => d.filter((x) => !ids.includes(x))); setToast(null); },
+                    });
+                  }}
+                />
+              </>
+            }
+          >
+            <p className="m-0 sp-text-body-standard text-sp-text">
+              {one ? `Möchten Sie die Aufgabe „${one.title}“ wirklich löschen? Sie wird` : `Möchten Sie die ${list.length} ausgewählten Aufgaben wirklich löschen? Sie werden`} aus der Liste entfernt
+              {list.some((t) => t.status === "done") ? " – einschließlich der abgegebenen Nachweise" : ""}.
+              {recurring && !one ? " Wiederkehrende Aufgaben werden nur für den ausgewählten Tag gelöscht – die Vorlage in der Bibliothek bleibt." : ""}
+              {recurring && one ? " Die Aufgabe wird nur für diesen Tag gelöscht – die Vorlage in der Bibliothek bleibt." : ""}
+              {" "}Direkt danach können Sie das Löschen noch rückgängig machen.
+            </p>
+          </Modal>
+        );
+      })()}
       {toast && (
         <div className="fixed bottom-[var(--sp-space-6x)] left-1/2 -translate-x-1/2 z-[60]">
           <Toast
             message={toast.message}
             onClose={() => setToast(null)}
             actions={toast.undo
-              ? [...(toast.noView ? [] : [{ label: "View", onClick: () => { onView(); setToast(null); } }]), { label: "Undo", onClick: toast.undo }]
+              ? [...(toast.noView ? [] : [{ label: "Anzeigen", onClick: () => { onView(); setToast(null); } }]), { label: "Rückgängig", onClick: toast.undo }]
               : undefined}
           />
         </div>

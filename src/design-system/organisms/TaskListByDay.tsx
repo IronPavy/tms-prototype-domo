@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { StatusChip } from "../atoms/StatusChip";
 import { EmptyState } from "../molecules/EmptyState";
-import { TaskRow, type TaskRowData } from "../molecules/TaskRow";
+import { TaskRow, type RowSelect, type TaskRowData } from "../molecules/TaskRow";
 import type { TaskAction } from "../molecules/TaskRowMenu";
 import { sameDay } from "../utils/date";
 
@@ -12,6 +12,8 @@ export interface DayGroup {
   label: string;
   /** already in display order (due time, then title) */
   tasks: TaskRowData[];
+  /** number of tasks of the day when only part of them is loaded (endless list) — default tasks.length */
+  total?: number;
 }
 
 export interface TaskListByDayProps {
@@ -19,12 +21,18 @@ export interface TaskListByDayProps {
   overdue: TaskRowData[] | null;
   /** pinned section 2 — tasks without a due date; null = hidden */
   noDue: TaskRowData[] | null;
+  /** all tasks without a due date when only part of them is loaded — the header count */
+  noDueTotal?: number;
   /** every day of the period, oldest → newest */
   days: DayGroup[];
   today: Date;
   onOpen?: (task: TaskRowData) => void;
   /** three-dot menu of a row */
   onAction?: (action: TaskAction, task: TaskRowData) => void;
+  /** selection checkbox per row instead of the delete icon (bulk delete) */
+  select?: (task: TaskRowData) => RowSelect;
+  /** under the last day — e.g. the "loading more" row of the endless list */
+  footer?: ReactNode;
 }
 
 const ROWS_CARD = "overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius-3x)]";
@@ -33,9 +41,10 @@ const ROWS_CARD = "overflow-x-auto bg-sp-surface-raised rounded-[var(--sp-radius
     · day header: label (Roboto Medium) · "HEUTE" Badge Notification on today · count = neutral Badge Chip (full number of the day)
     · only days that have tasks are shown (no empty days, no "Keine Aufgaben")
     · all days of the period are listed newest first — the last selected day on top, the first selected day at the bottom (no folding)
-    · every task of a day is listed (no "load more" — the page scrolls)
+    · the host may pass only the loaded part of an endless list + a `footer` ("Weitere Aufgaben werden geladen …")
+    · `select` puts a selection checkbox at the end of every row instead of the delete icon (bulk delete)
     Cards = SP3 "Card" Filled (surface/raised, radius 3x); empty pinned sections use the SP3 Empty State (Small). */
-export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }: TaskListByDayProps) {
+export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction, select, footer, noDueTotal }: TaskListByDayProps) {
   // days without tasks are never shown (filters / search leave only what has data)
   // newest day first: period 1.10.–27.10. lists 27.10., 26.10., 25.10. … 1.10.
   const filled = days.filter((d) => d.tasks.length).reverse();
@@ -55,15 +64,15 @@ export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }:
       {tasks.map((t, i) => (
         <Fragment key={t.id}>
           {i > 0 && <hr className="m-0 mx-[var(--sp-space-4x)] border-0 border-t border-solid border-sp-neutral-fill-light" />}
-          <TaskRow task={t} onOpen={() => onOpen?.(t)} onAction={onAction && ((a) => onAction(a, t))} />
+          <TaskRow task={t} onOpen={() => onOpen?.(t)} onAction={onAction && ((a) => onAction(a, t))} select={select?.(t)} />
         </Fragment>
       ))}
     </div>
   );
 
-  const pinned = (title: string, tone: "default" | "error", tasks: TaskRowData[], emptyTitle: string, icon: "check" | "cal") => (
+  const pinned = (title: string, tone: "default" | "error", tasks: TaskRowData[], emptyTitle: string, icon: "check" | "cal", total?: number) => (
     <section aria-label={title} className="flex flex-col gap-[var(--sp-space-2x)]">
-      <Header tone={tone} count={tasks.length}>{title}</Header>
+      <Header tone={tone} count={total ?? tasks.length}>{title}</Header>
       <div className={ROWS_CARD}>
         {tasks.length ? rowsOf(tasks) : <div className="flex justify-center py-[var(--sp-space-2x)]"><EmptyState icon={icon} title={emptyTitle} /></div>}
       </div>
@@ -73,7 +82,7 @@ export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }:
   const day = (d: DayGroup) => {
     return (
       <section key={d.id} aria-label={d.label} className="flex flex-col gap-[var(--sp-space-2x)]">
-        <Header count={d.tasks.length} badge={sameDay(d.date, today) ? "HEUTE" : undefined}>{d.label}</Header>
+        <Header count={d.total ?? d.tasks.length} badge={sameDay(d.date, today) ? "HEUTE" : undefined}>{d.label}</Header>
         <div className={ROWS_CARD}>
           {rowsOf(d.tasks)}
         </div>
@@ -84,9 +93,10 @@ export function TaskListByDay({ overdue, noDue, days, today, onOpen, onAction }:
   return (
     <div className="flex flex-col gap-[var(--sp-space-4x)]">
       {!!overdue?.length && pinned("Überfällig", "error", overdue, "Keine überfälligen Aufgaben", "check")}
-      {!!noDue?.length && pinned("Ohne Fälligkeit", "default", noDue, "Keine Aufgaben ohne Fälligkeit", "cal")}
+      {!!noDue?.length && pinned("Ohne Fälligkeit", "default", noDue, "Keine Aufgaben ohne Fälligkeit", "cal", noDueTotal)}
 
       {filled.map(day)}
+      {footer}
     </div>
   );
 }

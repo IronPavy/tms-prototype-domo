@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Button, DateRangePicker, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
+  Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, ScrollTopButton, SearchField, useScrollArea, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { clampRange } from "@/design-system/utils/date";
@@ -21,6 +21,9 @@ const DUE_OPTIONS = [
   { id: "with", label: "Mit Fälligkeit" },
   { id: "without", label: "Ohne Fälligkeit" },
 ];
+/** tasks per page of the endless list (the live app loads 15 at a time) */
+const PAGE = 15;
+
 const VIEWS = [
   { id: "list", label: "Liste", icon: "unordered_list" as const },
   // Cards and Calendar are introduced later: greyed out, tooltip says so
@@ -59,7 +62,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const shownView = views.some((v) => v.id === view && !v.disabled) ? view : "list";
 
   const scope = useScope();
-  const { created, createdStats, drafts, openNewTask, deleteDraft, recipientNames, openDetail, withEdits, withEditsList, taskAction } = useTasks();
+  const { created, createdStats, drafts, openNewTask, deleteDraft, recipientNames, openDetail, withEdits, withEditsList, taskAction, deleteTasks } = useTasks();
 
   // Bibliothek: every template ever created · filter by shift / employee / frequency (applied with "Anwenden")
   const [libFilter, setLibFilter] = useState<LibraryFilterValue>({ selected: [], freq: [] });
@@ -110,6 +113,40 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   // Vorherige / Nächste in the detail walk the tasks in the order the current view shows them
   const listOrder = [...(!isAction && dueFilter !== "with" ? noDueTasks : []), ...[...listDays].reverse().flatMap((d) => d.tasks)];
   const groupOrder = groups.flatMap((g) => g.tasks);
+
+  // endless list, like the live app: the first PAGE tasks, then the next page while scrolling to the end
+  const [shown, setShown] = useState(PAGE);
+  const listKey = [tab, [...active].join(), type, dueFilter, query, JSON.stringify(range), JSON.stringify(scope), shownView].join("|");
+  useEffect(() => { setShown(PAGE); setSelected([]); }, [listKey]);
+  const loadRef = useRef<HTMLDivElement>(null);
+  const more = shown < listOrder.length;
+  useEffect(() => {
+    const el = loadRef.current;
+    if (!el || !more) return;
+    // the loading row came into view (any scroll container) → next page after a short "network" delay
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const check = () => { if (!t && el.getBoundingClientRect().top < window.innerHeight + 100) t = setTimeout(() => { t = undefined; setShown((n) => n + PAGE); }, 600); };
+    document.addEventListener("scroll", check, true);
+    window.addEventListener("resize", check);
+    check();
+    return () => { document.removeEventListener("scroll", check, true); window.removeEventListener("resize", check); if (t) clearTimeout(t); };
+  }, [more, shown]);
+  // the loaded part, in display order: Ohne Fälligkeit first, then the days newest first (TaskListByDay lists days newest first)
+  let budget = shown;
+  const noDueShown = (!isAction && dueFilter !== "with" ? noDueTasks : []).slice(0, Math.max(0, budget)); budget -= noDueShown.length;
+  const daysShown = [...listDays].reverse().map((d) => { const tasks = d.tasks.slice(0, Math.max(0, budget)); budget -= tasks.length; return { ...d, tasks, total: d.tasks.length }; }).reverse();
+
+  // bulk delete: tick open / overdue tasks (done ones keep their proof) — only what is loaded, no "select all"
+  const [selected, setSelected] = useState<string[]>([]);
+  const barShown = selected.length > 0 && listTab && shownView === "list";
+  const area = useScrollArea(pageRef);
+  const selectedTasks = listOrder.filter((t) => selected.includes(t.id));
+  const rowSelect = (t: TaskRowData) => ({
+    checked: selected.includes(t.id),
+    disabled: t.status === "done",
+    disabledHint: "Erledigte Aufgaben mit Nachweis können nicht gelöscht werden",
+    onChange: () => setSelected((s) => (s.includes(t.id) ? s.filter((x) => x !== t.id) : [...s, t.id])),
+  });
   // number of overdue tasks (with a due date) in the period — badge of the Handlungsbedarf tab
   const actionCount = allGroups.flatMap((g) => g.tasks).filter((t) => t.status === "overdue" && !t.noDue && inScope(scope, t.location) && searchMatch(t)).length;
   // with an applied search the status chips and the Status tab count only the tasks that match the search text
@@ -239,11 +276,17 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
       ) : listTab && shownView === "list" ? (
         <TaskListByDay
           overdue={null}
-          noDue={!isAction && dueFilter !== "with" ? noDueTasks : null}
-          days={listDays}
+          noDue={!isAction && dueFilter !== "with" ? noDueShown : null}
+          noDueTotal={noDueTasks.length}
+          days={daysShown}
           today={TODAY}
           onOpen={(t) => openDetail(t, listOrder)}
-          onAction={taskAction}
+          select={rowSelect}
+          footer={more && (
+            <div ref={loadRef} className="flex items-center justify-center gap-[var(--sp-space-2x)] p-[var(--sp-space-4x)] sp-text-standard text-sp-text-label">
+              <Icon name="refresh" color="var(--sp-icon)" />Weitere Aufgaben werden geladen …
+            </div>
+          )}
         />
       ) : listTab && shownView === "cards" ? (
         <TaskCardGrid groups={groups} onOpen={(t) => openDetail(t, groupOrder)} />
@@ -298,7 +341,24 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           }
         />
       )}
-      <ScrollTopButton anchorRef={pageRef} />
+      {/* bulk delete: floating action bar while tasks are ticked (filters stay visible) — "Nach oben" floats above it */}
+      {barShown && (
+        <>
+          <div aria-hidden className="h-[var(--sp-space-16x)]" />
+          <div
+            role="toolbar"
+            aria-label="Auswahl"
+            style={area.left ? { left: area.left } : undefined}
+            className="fixed bottom-[var(--sp-space-6x)] left-1/2 -translate-x-1/2 z-[55] flex items-center gap-[var(--sp-space-3x)] py-[var(--sp-space-2x)] pl-[var(--sp-space-4x)] pr-[var(--sp-space-2x)] bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-3x)] shadow-[var(--sp-shadow-m)]"
+          >
+            <span className="sp-text-medium text-sp-text whitespace-nowrap tabular-nums">{selected.length} ausgewählt</span>
+            <span aria-hidden className="w-px h-6 bg-sp-border-line" />
+            <Button variant="tertiary" label="Auswahl aufheben" onClick={() => setSelected([])} />
+            <Button variant="primary" danger icon="delete" label={`${selected.length} löschen`} onClick={() => deleteTasks(selectedTasks, () => setSelected([]))} />
+          </div>
+        </>
+      )}
+      <ScrollTopButton anchorRef={pageRef} raised={barShown} />
     </div>
   );
 }

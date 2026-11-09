@@ -5,7 +5,6 @@ import DashboardPage from "./DashboardPage";
 import TasksPage from "./TasksPage";
 import { ScopeProvider } from "./scope";
 import { TasksProvider } from "./tasksStore";
-import { ReviewLayer } from "@/review/ReviewLayer";
 
 /* Content per sidebar item — add new screens here. `go` switches the selected sidebar item. */
 const PAGES: Record<string, (go: (id: string) => void) => ReactNode> = {
@@ -26,7 +25,6 @@ export default function PrototypePage() {
         >
           {PAGES[selectedId]?.(setSelectedId)}
         </AppShell>
-        <ReviewLayer page={selectedId} />
       </TasksProvider>
     </ScopeProvider>
   );
