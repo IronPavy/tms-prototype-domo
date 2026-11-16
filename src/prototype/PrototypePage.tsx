@@ -3,6 +3,7 @@ import { AppShell } from "@/design-system";
 import { HEADER, NAV_SECTIONS } from "./data";
 import DashboardPage from "./DashboardPage";
 import TasksPage from "./TasksPage";
+import FormsPage from "./FormsPage";
 import { ScopeProvider } from "./scope";
 import { TasksProvider } from "./tasksStore";
 
@@ -10,6 +11,7 @@ import { TasksProvider } from "./tasksStore";
 const PAGES: Record<string, (go: (id: string) => void) => ReactNode> = {
   "tasks/dashboard": (go) => <DashboardPage onNavigate={go} />,
   "tasks/tasks": (go) => <TasksPage onNavigate={go} />,
+  "tasks/forms": (go) => <FormsPage onNavigate={go} />,
 };
 
 /* "Starting screen" (Figma 18:659) with the selected page in the content area. */

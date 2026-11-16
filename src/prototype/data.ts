@@ -55,6 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
     children: [
       { id: "tasks/dashboard", label: "Übersicht" },
       { id: "tasks/tasks", label: "Aufgaben" },
+      { id: "tasks/forms", label: "Formulare" },
       { id: "tasks/reports", label: "Berichte" },
     ],
   },
