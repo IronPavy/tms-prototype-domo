@@ -12,6 +12,9 @@ export interface DateRangePickerProps {
   today?: Date;
   /** last selectable day (e.g. today: the future is disabled) — presets, ‹ › and the calendar stop there */
   maxDate?: Date;
+  /** presets end on this day (e.g. "Dieser Monat" = 1st until today) while the calendar and ‹ › stay free for the future;
+      also offers "Alle Tage" (the whole current month) */
+  presetEnd?: Date;
 }
 
 const box =
@@ -23,15 +26,16 @@ const box =
     Presets and the calendar only change a draft (one click = single day, second click = range); "Confirm" (bottom right
     under the calendar) applies it and closes, "Cancel" / Esc / click outside discards it.
     ‹ › step by the range: a day, a week, whole months, or the range length. */
-export function DateRangePicker({ value, onChange, today = new Date(), maxDate }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, today = new Date(), maxDate, presetEnd }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   /** range being edited in the popover — applied by Confirm */
   const [draft, setDraft] = useState<DateRange>(value);
   // "Alle Tage" (future preset) only makes sense when the future is otherwise cut off — without maxDate it equals "Dieser Monat"
-  const presets = DATE_PRESETS.filter((p) => !p.future || maxDate);
-  const presetRange = (p: (typeof DATE_PRESETS)[number]) => (maxDate && !p.future ? clampRange(p.range(today), maxDate) : p.range(today));
-  const find = (r: DateRange) => (maxDate ? presets.find((p) => sameRange(presetRange(p), r)) : matchPreset(r, today));
+  const cut = maxDate ?? presetEnd;
+  const presets = DATE_PRESETS.filter((p) => !p.future || cut);
+  const presetRange = (p: (typeof DATE_PRESETS)[number]) => (cut && !p.future ? clampRange(p.range(today), cut) : p.range(today));
+  const find = (r: DateRange) => (cut ? presets.find((p) => sameRange(presetRange(p), r)) : matchPreset(r, today));
   const preset = find(value);
   const draftPreset = find(draft);
   const atEnd = !!maxDate && diffDays(maxDate, value.end) >= 0;
