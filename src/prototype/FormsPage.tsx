@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Icon, SelectField, StatusChip, TextField, Toast, SOLUTION, type IconName, type TaskProof } from "@/design-system";
+import { Button, Checkbox, Icon, SegmentedControl, SelectField, StatusChip, TextField, Toast, SOLUTION, type IconName, type TaskProof } from "@/design-system";
 
 /* Aufgaben Management › Formulare — create a form ("one list" builder).
    Every field is one row: title · answer type · unit · required. Rules sit directly under their field:
@@ -49,6 +49,83 @@ const condLabel = (r: Rule, unit: string) => {
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/* does the rule fire for the answer given in the preview? */
+const num = (s: string) => Number(s.replace(",", "."));
+const fires = (r: Rule, answer: string | boolean | undefined) => {
+  if (r.cond === "checked") return answer === true;
+  if (r.cond === "unchecked") return answer !== true && answer !== undefined;
+  if (typeof answer !== "string" || !answer.trim() || isNaN(num(answer))) return false;
+  const v = num(answer);
+  if (r.cond === "gt") return !!r.a && v > num(r.a);
+  if (r.cond === "lt") return !!r.a && v < num(r.a);
+  return !!r.a && !!r.b && (v < num(r.a) || v > num(r.b));
+};
+
+/* Vorschau: the form on the employee's phone (mobile app). The screen inside the frame is a placeholder until the
+   mobile designers' screens arrive — then it is rebuilt to match them. Answers are not saved. */
+function FormPreview({ name, description, fields }: { name: string; description: string; fields: Field[] }) {
+  const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
+  const set = (id: string, v: string | boolean) => setAnswers((a) => ({ ...a, [id]: v }));
+
+  return (
+    <div className="flex flex-col items-center gap-[var(--sp-space-4x)]">
+      <div className="flex items-center gap-[var(--sp-space-2x)] sp-text-standard text-sp-text-label">
+        <Icon name="eye" color="var(--sp-icon)" />
+        So sehen Mitarbeitende das Formular in der App. Eingaben werden nicht gespeichert.
+        <Button variant="tertiary" label="Zurücksetzen" onClick={() => setAnswers({})} />
+      </div>
+
+      {/* phone frame — 390 × 844 screen (iPhone size) */}
+      <div className="p-[var(--sp-space-3x)] bg-sp-text-title rounded-[56px] shadow-[var(--sp-shadow-m)]">
+        <div className="relative flex flex-col w-[390px] h-[844px] overflow-hidden bg-sp-surface-default rounded-[44px]">
+          {/* status bar */}
+          <div className="flex items-center justify-between h-12 px-[var(--sp-space-8x)] shrink-0 bg-sp-surface-raised sp-text-small-medium text-sp-text">
+            <span>9:41</span>
+            <span aria-hidden className="w-[120px] h-[30px] rounded-[var(--sp-radius-pill)] bg-sp-text-title" />
+            <span className="flex items-center gap-[var(--sp-space-1x)]"><Icon name="battery" size={16} /></span>
+          </div>
+          {/* app bar */}
+          <div className="flex items-center gap-[var(--sp-space-2x)] h-14 px-[var(--sp-space-3x)] shrink-0 bg-sp-surface-raised border-0 border-b border-solid border-sp-border-line">
+            <Icon name="left" size={20} color="var(--sp-text)" />
+            <span className="flex-1 min-w-0 truncate sp-text-large-medium text-sp-text-title">{name.trim() || "Neues Formular"}</span>
+          </div>
+
+          {/* screen content — placeholder until the designers' screens arrive */}
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[var(--sp-space-4x)] p-[var(--sp-space-4x)]">
+            {description.trim() && <p className="m-0 sp-text-standard text-sp-text-label">{description}</p>}
+            {!fields.length && <span className="sp-text-standard text-sp-text-label">Das Formular hat noch keine Felder.</span>}
+            {fields.map((f, i) => {
+              const title = f.title.trim() || `Feld ${i + 1}`;
+              const a = answers[f.id];
+              return (
+                <div key={f.id} className="flex flex-col gap-[var(--sp-space-2x)] p-[var(--sp-space-4x)] bg-sp-surface-raised border border-solid border-sp-border-line rounded-[var(--sp-radius-3x)]">
+                  {f.type === "checkbox" ? (
+                    <Checkbox checked={a === true} onChange={(v) => set(f.id, v)} label={title} />
+                  ) : (
+                    <>
+                      <span className="sp-text-medium text-sp-text">{title}{f.required && <span className="text-sp-danger-on-surface"> *</span>}</span>
+                      {f.type === "number" ? (
+                        <TextField value={String(a ?? "")} onChange={(v) => set(f.id, v.replace(/[^\d,.-]/g, ""))} placeholder="Zahl eingeben" end={f.unit ? <span className="sp-text-standard text-sp-text-label">{f.unit}</span> : undefined} aria-label={title} />
+                      ) : (
+                        <TextField multiline rows={3} value={String(a ?? "")} onChange={(v) => set(f.id, v)} placeholder="Text eingeben" aria-label={title} />
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* bottom action */}
+          <div className="shrink-0 p-[var(--sp-space-4x)] pb-[var(--sp-space-8x)] bg-sp-surface-raised border-0 border-t border-solid border-sp-border-line">
+            <Button variant="primary" label="Formular senden" className="w-full h-10" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* grid of a field row: drag · Nr. · title · type · unit · required · actions */
 const GRID = "grid grid-cols-[16px_24px_minmax(160px,1fr)_minmax(150px,200px)_88px_56px_72px] items-center gap-x-[var(--sp-space-3x)] px-[var(--sp-space-4x)]";
 
@@ -74,6 +151,7 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
   const [tried, setTried] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [mode, setMode] = useState("edit");
 
   // every change is saved as a draft ("Gespeichert hh:mm")
   const touch = () => { setSavedAt(new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })); setPublished(false); };
@@ -117,6 +195,7 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
   const publish = () => {
     setTried(true);
     if (errors) {
+      setMode("edit");
       const bad = fields.find((f) => !f.title.trim() || f.rules.some((r) => ruleInvalid(f, r)));
       if (bad) setOpenId(bad.id);
       return;
@@ -137,10 +216,17 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
         <h1 className="sp-title-h1 m-0 text-sp-text-title truncate">{name.trim() || "Neues Formular"}</h1>
         {published ? <StatusChip tone="success" label="Veröffentlicht" /> : <StatusChip tone="info" label="Entwurf" />}
         <span className="flex-1" />
+        <SegmentedControl
+          label="Ansicht"
+          options={[{ id: "edit", label: "Bearbeiten", icon: "edit" }, { id: "preview", label: "Vorschau", icon: "eye" }]}
+          value={mode}
+          onChange={setMode}
+        />
         {savedAt && <span className="sp-text-small text-sp-text-label">Gespeichert {savedAt}</span>}
         <Button variant="primary" label="Veröffentlichen" onClick={publish} />
       </div>
 
+      {mode === "preview" ? <FormPreview name={name} description={description} fields={fields} /> : (<>
       {tried && errors > 0 && (
         <div role="alert" className="flex items-center gap-[var(--sp-space-2x)] p-[var(--sp-space-3x)] bg-sp-danger-fill-light border border-solid border-sp-danger-border-light rounded-[var(--sp-radius-3x)] sp-text-standard text-sp-text">
           <Icon name="warning" color="var(--sp-danger-on-surface)" />
@@ -317,6 +403,7 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
           {subCount > 0 && <span className="sp-text-small text-sp-text-label">{plural(fields.length, "Feld", "Felder")} · {plural(rulesCount, "Regel", "Regeln")} · {plural(subCount, "Unteraufgabe", "Unteraufgaben")}</span>}
         </div>
       </section>
+      </>)}
 
       {toast && (
         <div className="fixed bottom-[var(--sp-space-6x)] left-1/2 -translate-x-1/2 z-50">
