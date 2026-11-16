@@ -28,8 +28,10 @@ export function DateRangePicker({ value, onChange, today = new Date(), maxDate }
   const ref = useRef<HTMLDivElement>(null);
   /** range being edited in the popover — applied by Confirm */
   const [draft, setDraft] = useState<DateRange>(value);
-  const presetRange = (p: (typeof DATE_PRESETS)[number]) => (maxDate ? clampRange(p.range(today), maxDate) : p.range(today));
-  const find = (r: DateRange) => (maxDate ? DATE_PRESETS.find((p) => sameRange(presetRange(p), r)) : matchPreset(r, today));
+  // "Alle Tage" (future preset) only makes sense when the future is otherwise cut off — without maxDate it equals "Dieser Monat"
+  const presets = DATE_PRESETS.filter((p) => !p.future || maxDate);
+  const presetRange = (p: (typeof DATE_PRESETS)[number]) => (maxDate && !p.future ? clampRange(p.range(today), maxDate) : p.range(today));
+  const find = (r: DateRange) => (maxDate ? presets.find((p) => sameRange(presetRange(p), r)) : matchPreset(r, today));
   const preset = find(value);
   const draftPreset = find(draft);
   const atEnd = !!maxDate && diffDays(maxDate, value.end) >= 0;
@@ -79,7 +81,7 @@ export function DateRangePicker({ value, onChange, today = new Date(), maxDate }
         >
           {/* Presets — Menu List */}
           <div role="menu" className="flex flex-col w-44 p-[var(--sp-space-2x)] border-0 border-r border-solid border-sp-border-line">
-            {DATE_PRESETS.map((p) => (
+            {presets.map((p) => (
               <MenuListItem
                 key={p.id}
                 label={p.label}

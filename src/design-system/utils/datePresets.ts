@@ -3,12 +3,14 @@ import {
 } from "./date";
 
 export type PresetId =
-  | "today" | "yesterday" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "last30" | "last90";
+  | "today" | "yesterday" | "thisWeek" | "lastWeek" | "thisMonth" | "allDays" | "lastMonth" | "last30" | "last90";
 
 export interface DatePreset {
   id: PresetId;
   label: string;
   range: (today: Date) => DateRange;
+  /** may reach past the picker's maxDate (not clamped) — only offered when a maxDate is set */
+  future?: boolean;
 }
 
 /** Quick ranges shown on the left of the date range picker. */
@@ -18,7 +20,13 @@ export const DATE_PRESETS: DatePreset[] = [
   { id: "thisWeek",  label: "Diese Woche",  range: (t) => ({ start: startOfWeek(t), end: addDays(startOfWeek(t), 6) }) },
   { id: "lastWeek",  label: "Letzte Woche", range: (t) => ({ start: addDays(startOfWeek(t), -7), end: addDays(startOfWeek(t), -1) }) },
   { id: "thisMonth", label: "Dieser Monat", range: (t) => ({ start: startOfMonth(t), end: endOfMonth(t) }) },
+  // every day of the current month, the coming days included
+  { id: "allDays",   label: "Alle Tage",    range: (t) => ({ start: startOfMonth(t), end: endOfMonth(t) }), future: true },
 ];
+
+/** is `range` the "Alle Tage" range (whole current month) — such a range is not cut at today */
+export const isAllDays = (range: DateRange, today: Date) =>
+  sameRange(DATE_PRESETS.find((p) => p.id === "allDays")!.range(today), range);
 
 /** preset whose range equals `range` today, if any */
 export const matchPreset = (range: DateRange, today: Date) =>
