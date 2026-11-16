@@ -4,7 +4,7 @@ import {
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { clampRange } from "@/design-system/utils/date";
-import { DATE_PRESETS, isAllDays } from "@/design-system/utils/datePresets";
+import { DATE_PRESETS } from "@/design-system/utils/datePresets";
 import { TODAY, dueDateKey, dueSortKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
 import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
@@ -38,9 +38,8 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const pageRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("status");
   const { range: periodRange, setRange, pendingStatus, setPendingStatus } = usePeriod();
-  // the future cannot be looked at: the period ends today at the latest (date picker disables later days) —
-  // except "Alle Tage": every day of the current month, the coming days included
-  const range = isAllDays(periodRange, TODAY) ? periodRange : clampRange(periodRange, TODAY);
+  // future days can be picked too (calendar, ‹ ›, "Alle Tage" = the whole current month); presets like "Dieser Monat" end today
+  const range = periodRange;
   // opening Aufgaben starts on "Dieser Monat": the 1st until today
   useEffect(() => {
     const month = DATE_PRESETS.find((p) => p.id === "thisMonth")!;
@@ -202,7 +201,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           actions={
             <>
               <ScopeFilters />
-              <DateRangePicker value={range} onChange={setRange} today={TODAY} maxDate={TODAY} />
+              <DateRangePicker value={range} onChange={setRange} today={TODAY} presetEnd={TODAY} />
             </>
           }
         />
