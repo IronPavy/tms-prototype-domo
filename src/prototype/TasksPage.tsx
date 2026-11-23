@@ -270,7 +270,9 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
         </div>
 
         {/* search (shrinks) */}
-        <div className="flex flex-wrap items-center gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-1x)]">
+        <div className="flex flex-wrap items-start gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-1x)]">
+          {/* search field with its hint directly below it */}
+          <div className="flex flex-col gap-[var(--sp-space-1x)] w-full min-w-[200px] max-w-[300px]">
           <SearchField
             value={draft}
             onChange={(v) => { setDraft(v); setTooShort(false); if (!v) setQuery(""); }}
@@ -279,10 +281,11 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             maxLength={40}
             clearLabel="Suche zurücksetzen"
             placeholder="Aufgaben durchsuchen"
-            className="w-full min-w-[200px] max-w-[300px]"
+            className="w-full"
           />
-          {tab === "library" && <LibraryFilter shifts={libTree.shifts} employees={libTree.employees} frequencies={FREQUENCIES} value={libFilter} onApply={setLibFilter} />}
           {tooShort && <span role="alert" className="sp-text-small text-sp-danger-on-surface">Bitte mindestens 3 Zeichen eingeben und Enter drücken.</span>}
+          </div>
+          {tab === "library" && <LibraryFilter shifts={libTree.shifts} employees={libTree.employees} frequencies={FREQUENCIES} value={libFilter} onApply={setLibFilter} />}
           {/* selection mode (bulk delete): select all loaded · count · Abbrechen · red delete — right end of the search row */}
           {selectMode && listTab && shownView === "list" && (
             <div role="toolbar" aria-label="Auswahl" className="ml-auto flex flex-wrap items-center gap-[var(--sp-space-3x)]">
