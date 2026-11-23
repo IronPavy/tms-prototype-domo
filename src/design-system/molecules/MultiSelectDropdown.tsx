@@ -16,6 +16,8 @@ export interface MultiSelectDropdownProps {
   onChange: (value: string[]) => void;
   /** text for the empty selection and the first menu row, "All locations" */
   allLabel: string;
+  /** "all" (empty value) shows every option ticked; unticking narrows down from all, and at least one option stays selected */
+  preselectAll?: boolean;
   className?: string;
 }
 
@@ -24,7 +26,7 @@ export interface MultiSelectDropdownProps {
     [icon  All locations ⌄] — shows the first pick + "+N" when several are selected.
     Popover: "Dropdown Item"s (32px, 2x padding) — first row = all (selected while nothing is narrowed down),
     then one row per option with a checkbox (brand when checked). Stays open while ticking; closes on Esc / outside click. */
-export function MultiSelectDropdown({ label, icon, options, value, onChange, allLabel, className = "" }: MultiSelectDropdownProps) {
+export function MultiSelectDropdown({ label, icon, options, value, onChange, allLabel, preselectAll = false, className = "" }: MultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -42,8 +44,12 @@ export function MultiSelectDropdown({ label, icon, options, value, onChange, all
 
   const picked = options.filter((o) => value.includes(o.id));
   const text = !picked.length ? allLabel : picked[0].label;
+  const allMode = preselectAll && !value.length;
+  const isOn = (id: string) => allMode || value.includes(id);
   const toggle = (id: string) => {
-    const next = value.includes(id) ? value.filter((v) => v !== id) : [...value, id];
+    const base = allMode ? options.map((o) => o.id) : value;
+    const next = base.includes(id) ? base.filter((v) => v !== id) : [...base, id];
+    if (preselectAll && !next.length) return; // at least one stays selected
     onChange(next.length >= options.length ? [] : next);
   };
 
@@ -95,7 +101,7 @@ export function MultiSelectDropdown({ label, icon, options, value, onChange, all
           </button>
           <hr className="my-[var(--sp-space-1x)] border-0 border-t border-solid border-sp-border-line" />
           {options.map((o) => {
-            const on = value.includes(o.id);
+            const on = isOn(o.id);
             return (
               <button
                 key={o.id}
