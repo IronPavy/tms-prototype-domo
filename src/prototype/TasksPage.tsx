@@ -61,7 +61,9 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const views = listTab ? VIEWS : VIEWS.filter((v) => v.id !== "calendar");
   const shownView = views.some((v) => v.id === view && !v.disabled) ? view : "list";
 
-  const scope = useScope();
+  // Aufgaben filters by group only (no Location dropdown here), so a location picked on the Dashboard does not apply
+  const fullScope = useScope();
+  const scope = useMemo(() => ({ ...fullScope, locations: [] }), [fullScope]);
   const { created, createdStats, drafts, openNewTask, deleteDraft, recipientNames, openDetail, withEdits, withEditsList, taskAction, deleteTasks } = useTasks();
 
   // Bibliothek: every template ever created · filter by shift / employee / frequency (applied with "Anwenden")
@@ -200,7 +202,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           primaryAction={<Button variant="primary" icon="plus" label="Neue Aufgabe" onClick={() => openNewTask()} />}
           actions={
             <>
-              <ScopeFilters />
+              <ScopeFilters groupsOnly />
               <DateRangePicker value={range} onChange={setRange} today={TODAY} presetEnd={TODAY} />
             </>
           }

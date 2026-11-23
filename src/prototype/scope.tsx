@@ -29,23 +29,25 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
 export const useScope = () => useContext(ScopeContext).scope;
 
 /** Groups + Location dropdowns for the page header (left of the period picker): multi-select lists that filter the page.
-    Locations offered = those of the selected groups; picks outside them are dropped when the groups change. */
-export function ScopeFilters() {
+    Locations offered = those of the selected groups; picks outside them are dropped when the groups change.
+    `groupsOnly` (Aufgaben): no Location dropdown; all groups start ticked and at least one stays selected. */
+export function ScopeFilters({ groupsOnly = false }: { groupsOnly?: boolean } = {}) {
   const { scope, setScope } = useContext(ScopeContext);
   return (
     <div className="flex items-center gap-[var(--sp-space-2x)]">
-      <MultiSelectDropdown
+      {!groupsOnly && <MultiSelectDropdown
         label="Standort"
         icon="marker"
         allLabel="Alle Standorte"
         options={locationsInGroups(scope.groups).map(({ id, label }) => ({ id, label }))}
         value={scope.locations}
         onChange={(locations) => setScope({ ...scope, locations })}
-      />
+      />}
       <MultiSelectDropdown
         label="Gruppen"
         icon="user_group"
         allLabel="Alle Gruppen"
+        preselectAll={groupsOnly}
         options={ORG_GROUPS}
         value={scope.groups}
         onChange={(groups) => setScope({
