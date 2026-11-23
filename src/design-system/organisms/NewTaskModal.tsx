@@ -26,6 +26,8 @@ export interface NewTaskValues {
   /** solution type per subtask (same index); missing = "check". Once a task has subtasks, only these apply */
   subtaskProofs?: TaskProof[];
   proof: TaskProof;
+  /** solution type "Formular": the employee fills in this form template (only without subtasks) */
+  form?: { id: string; name: string };
   approval: boolean;
   priority: boolean;
 }
@@ -45,6 +47,8 @@ export interface NewTaskModalProps {
   onSend: (values: NewTaskValues) => void;
   onSaveDraft: (values: NewTaskValues) => void;
   onClose: () => void;
+  /** published form templates offered as solution type "Formular" */
+  forms?: { id: string; name: string }[];
 }
 
 type Panel = "sub" | null;
@@ -99,7 +103,7 @@ function SubtaskSolution({ index, value, onChange }: { index: number; value: Tas
     Recipient* · Title* · Description (+ attachment) · action row Due date / Subtasks / Solution type (each opens an inline panel and
     shows its value on the button) · toggles (approval, priority with helper text) · collapsible Summary · footer
     Cancel · Save as draft · Send. Inline errors on blur / on Send, "N required fields missing" hint, discard confirmation. */
-export function NewTaskModal({ recipients, initial, isDraft, mode = "create", onSend, onSaveDraft, onClose }: NewTaskModalProps) {
+export function NewTaskModal({ recipients, initial, isDraft, mode = "create", onSend, onSaveDraft, onClose, forms = [] }: NewTaskModalProps) {
   const [v, setV] = useState<NewTaskValues>(initial);
   const [panel, setPanel] = useState<Panel>(null);
   /** "due" = the Set date and time dialog replaces the form (the arrow there comes back) */
@@ -142,6 +146,8 @@ export function NewTaskModal({ recipients, initial, isDraft, mode = "create", on
   });
   /** with subtasks, the solution type is chosen per subtask — the task-level one is disabled */
   const hasSubs = v.subtasks.length > 0;
+  // a form is only allowed while the task has no subtasks
+  useEffect(() => { if (hasSubs && v.form) setV((s) => ({ ...s, form: undefined })); }, [hasSubs, v.form]);
   const togglePanel = (p: Exclude<Panel, null>) => {
     // opening Subtasks with none yet starts the first one, focused, so you can type right away
     if (p === "sub" && panel !== "sub" && !v.subtasks.length) set("subtasks", [""]);
@@ -291,7 +297,7 @@ export function NewTaskModal({ recipients, initial, isDraft, mode = "create", on
             <button
               ref={solBtnRef}
               type="button"
-              aria-label={`Solution type: ${hasSubs ? "per subtask" : SOLUTION[v.proof].label}`}
+              aria-label={`Solution type: ${hasSubs ? "per subtask" : v.form ? `Formular ${v.form.name}` : SOLUTION[v.proof].label}`}
               aria-haspopup="menu"
               aria-expanded={solOpen}
               disabled={hasSubs}
@@ -299,8 +305,8 @@ export function NewTaskModal({ recipients, initial, isDraft, mode = "create", on
               onClick={() => setSolOpen((o) => !o)}
               className={`inline-flex items-center h-8 p-[var(--sp-space-2x)] gap-[var(--sp-space-1x)] border-0 rounded-[var(--sp-radius-2x)] sp-text-medium whitespace-nowrap outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)] ${hasSubs ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} ${solOpen ? "bg-sp-selected text-sp-text-selected" : "bg-transparent text-sp-brand-on-surface"}`}
             >
-              <Icon name={SOLUTION[v.proof].icon} />
-              <span className="leading-none">Solution type</span>
+              <Icon name={v.form ? "form" : SOLUTION[v.proof].icon} />
+              <span className="leading-none max-w-[220px] truncate">{v.form ? `Formular: ${v.form.name}` : "Solution type"}</span>
               <Icon name="expanded" className={solOpen ? "rotate-180" : ""} />
             </button>
             <Popover
@@ -316,8 +322,16 @@ export function NewTaskModal({ recipients, initial, isDraft, mode = "create", on
               className="flex flex-col overflow-y-auto p-[var(--sp-space-1x)] bg-sp-form-control-background-color border border-solid border-sp-border-line rounded-[var(--sp-radius-2x)] shadow-[var(--sp-shadow-m)]"
             >
                 {(Object.keys(SOLUTION) as TaskProof[]).map((k) => (
-                  <MenuListItem key={k} inset icon={SOLUTION[k].icon} label={SOLUTION[k].label} selected={v.proof === k} onClick={() => { set("proof", k); setSolOpen(false); }} />
+                  <MenuListItem key={k} inset icon={SOLUTION[k].icon} label={SOLUTION[k].label} selected={!v.form && v.proof === k} onClick={() => { setV((s) => ({ ...s, proof: k, form: undefined })); setSolOpen(false); }} />
                 ))}
+                {forms.length > 0 && (
+                  <>
+                    <span className="px-[var(--sp-space-2x)] pt-[var(--sp-space-2x)] pb-[var(--sp-space-1x)] mt-[var(--sp-space-1x)] border-0 border-t border-solid border-sp-border-line sp-text-small-medium text-sp-text-label">Formular</span>
+                    {forms.map((f) => (
+                      <MenuListItem key={f.id} inset icon="form" label={f.name} selected={v.form?.id === f.id} onClick={() => { setV((s) => ({ ...s, proof: "check", form: { id: f.id, name: f.name } })); setSolOpen(false); }} />
+                    ))}
+                  </>
+                )}
             </Popover>
           </div>
         </div>

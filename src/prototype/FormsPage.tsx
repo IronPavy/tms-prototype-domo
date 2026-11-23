@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Icon, SegmentedControl, SelectField, StatusChip, TextField, Toast, SOLUTION, type IconName, type TaskProof } from "@/design-system";
+import { FormsList } from "./FormsList";
+import { Breadcrumb, Button, Checkbox, Icon, SegmentedControl, SelectField, StatusChip, TextField, Toast, SOLUTION, type IconName, type TaskProof } from "@/design-system";
 
 /* Aufgaben Management › Formulare — create a form ("one list" builder).
    Every field is one row: title · answer type · unit · required. Rules sit directly under their field:
@@ -141,7 +142,13 @@ const IconBtn = ({ icon, label, onClick, danger }: { icon: IconName; label: stri
   </button>
 );
 
-export default function FormsPage(_props: { onNavigate?: (id: string) => void }) {
+export default function FormsPage({ onNavigate }: { onNavigate?: (id: string) => void }) {
+  const [open, setOpen] = useState<string | null | undefined>(undefined);
+  const onHome = () => onNavigate?.("tasks/dashboard"); // breadcrumb "Aufgaben Management" → its Übersicht
+  return open === undefined ? <FormsList onOpen={setOpen} onHome={onHome} /> : <FormBuilder key={open ?? "new"} onBack={() => setOpen(undefined)} onHome={onHome} />;
+}
+
+function FormBuilder({ onBack, onHome }: { onBack: () => void; onHome: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [fields, setFields] = useState<Field[]>(() => [newField("checkbox")]);
@@ -209,10 +216,10 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
 
   return (
     <div className="flex flex-col gap-[var(--sp-space-5x)] p-[var(--sp-space-6x)] pb-[var(--sp-space-12x)]">
-      {/* header on the plain page background */}
+      {/* header on the plain page background: breadcrumb (SP3 Inline) above the title row */}
+      <div className="flex flex-col gap-[var(--sp-space-2x)]">
+      <Breadcrumb items={[{ label: "Aufgaben Management", onClick: onHome }, { label: "Formulare", onClick: onBack }, { label: name.trim() || "Neues Formular" }]} />
       <div className="flex flex-wrap items-center gap-[var(--sp-space-3x)] min-h-8">
-        <span className="sp-text-standard text-sp-text-label">Formulare</span>
-        <span className="sp-text-standard text-sp-text-label">/</span>
         <h1 className="sp-title-h1 m-0 text-sp-text-title truncate">{name.trim() || "Neues Formular"}</h1>
         {published ? <StatusChip tone="success" label="Veröffentlicht" /> : <StatusChip tone="info" label="Entwurf" />}
         <span className="flex-1" />
@@ -224,6 +231,7 @@ export default function FormsPage(_props: { onNavigate?: (id: string) => void })
         />
         {savedAt && <span className="sp-text-small text-sp-text-label">Gespeichert {savedAt}</span>}
         <Button variant="primary" label="Veröffentlichen" onClick={publish} />
+      </div>
       </div>
 
       {mode === "preview" ? <FormPreview name={name} description={description} fields={fields} /> : (<>
