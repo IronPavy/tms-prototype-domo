@@ -11,7 +11,8 @@ const TEXT = {
 };
 
 export interface CalendarRangeProps {
-  value: DateRange;
+  /** `null` = nothing selected (no days highlighted) */
+  value: DateRange | null;
   /** called on every pick: first click = single day, second click = range */
   onChange: (range: DateRange, complete: boolean) => void;
   today?: Date;
@@ -31,12 +32,14 @@ export interface CalendarRangeProps {
     · today = primary ring · hover = basics/hover · pressed = basics/pressed. */
 export function CalendarRange({ value, onChange, today = new Date(), bare, single: singleDay, lang = "en", maxDate }: CalendarRangeProps) {
   const T = TEXT[lang];
-  const [month, setMonth] = useState(() => startOfMonth(value.end));
+  const [month, setMonth] = useState(() => startOfMonth(value?.end ?? (maxDate && maxDate < today ? maxDate : today)));
   const [anchor, setAnchor] = useState<Date | null>(null); // first click of a new range
   const [hover, setHover] = useState<Date | null>(null);
 
   // while picking the second day, preview the range anchor → hovered day
-  const shown: DateRange = anchor ? toRange(anchor, hover ?? anchor) : value;
+  const shown: DateRange | null = anchor ? toRange(anchor, hover ?? anchor) : value;
+  // no month that lies completely in the future
+  const nextDisabled = !!maxDate && diffDays(maxDate, addMonths(month, 1)) > 0;
   const previewing = !!anchor;
 
   const pick = (d: Date) => {
@@ -59,7 +62,7 @@ export function CalendarRange({ value, onChange, today = new Date(), bare, singl
       <div className="flex items-center justify-between">
         <Button variant="tertiary" icon="previous" aria-label={T.prev} onClick={() => setMonth((m) => addMonths(m, -1))} />
         <span className="sp-text-medium text-sp-text-link">{T.month.format(month)}</span>
-        <Button variant="tertiary" icon="next" aria-label={T.next} onClick={() => setMonth((m) => addMonths(m, 1))} />
+        <Button variant="tertiary" icon="next" aria-label={T.next} disabled={nextDisabled} onClick={() => setMonth((m) => addMonths(m, 1))} />
       </div>
 
       <div className="flex flex-col gap-[var(--sp-space-2x)]">
@@ -72,10 +75,10 @@ export function CalendarRange({ value, onChange, today = new Date(), bare, singl
             <div key={week[0].toISOString()} className="flex justify-between">
               {week.map((d, i) => {
                 const inMonth = d.getMonth() === month.getMonth();
-                const isStart = sameDay(d, shown.start);
-                const isEnd = sameDay(d, shown.end);
+                const isStart = !!shown && sameDay(d, shown.start);
+                const isEnd = !!shown && sameDay(d, shown.end);
                 const single = isStart && isEnd;
-                const inside = isBetween(d, shown.start, shown.end);
+                const inside = !!shown && isBetween(d, shown.start, shown.end);
                 const edge = isStart || isEnd;
                 const isToday = sameDay(d, today);
                 const future = !!maxDate && diffDays(maxDate, d) > 0;
@@ -91,7 +94,7 @@ export function CalendarRange({ value, onChange, today = new Date(), bare, singl
                 );
 
                 const dayClass = future
-                  ? "bg-transparent text-sp-text-placeholder opacity-40"
+                  ? "bg-transparent text-sp-text-placeholder opacity-40 line-through"
                   : edge
                   ? "bg-sp-brand-fill-normal text-sp-brand-on-normal"
                   : inside

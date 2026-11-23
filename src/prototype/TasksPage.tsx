@@ -3,8 +3,6 @@ import {
   Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, RowSelectBox, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
-import { clampRange } from "@/design-system/utils/date";
-import { DATE_PRESETS } from "@/design-system/utils/datePresets";
 import { TODAY, dueDateKey, dueSortKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
 import { FREQUENCIES, buildTree, libraryTasks, matchesLibraryFilter } from "./library";
 import { ScopeFilters, usePeriod, useScope } from "./scope";
@@ -37,15 +35,8 @@ const VIEWS = [
 export default function TasksPage(_props: { onNavigate?: (id: string) => void }) {
   const pageRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("status");
-  const { range: periodRange, setRange, pendingStatus, setPendingStatus } = usePeriod();
-  // future days can be picked too (calendar, ‹ ›, "Alle Tage" = the whole current month); presets like "Dieser Monat" end today
-  const range = periodRange;
-  // opening Aufgaben starts on "Dieser Monat": the 1st until today
-  useEffect(() => {
-    const month = DATE_PRESETS.find((p) => p.id === "thisMonth")!;
-    setRange(clampRange(month.range(TODAY), TODAY));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // period: `null` = "Alle Tage" (default, no date filter) · shared with the Dashboard
+  const { period, setPeriod, range, pendingStatus, setPendingStatus } = usePeriod();
   // search: `draft` is what is typed, `query` the applied search (Enter, at least 3 characters)
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
@@ -118,7 +109,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
 
   // endless list, like the live app: the first PAGE tasks, then the next page while scrolling to the end
   const [shown, setShown] = useState(PAGE);
-  const listKey = [tab, [...active].join(), type, dueFilter, query, JSON.stringify(range), JSON.stringify(scope), shownView].join("|");
+  const listKey = [tab, [...active].join(), type, dueFilter, query, JSON.stringify(period), JSON.stringify(scope), shownView].join("|");
   useEffect(() => { setShown(PAGE); setSelected([]); setSelectMode(false); }, [listKey]);
   const loadRef = useRef<HTMLDivElement>(null);
   const more = shown < listOrder.length;
@@ -203,7 +194,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           actions={
             <>
               <ScopeFilters groupsOnly />
-              <DateRangePicker value={range} onChange={setRange} today={TODAY} presetEnd={TODAY} />
+              <DateRangePicker value={period} onChange={setPeriod} today={TODAY} maxDate={TODAY} allowAll dateOnly />
             </>
           }
         />
