@@ -60,8 +60,8 @@ function Fact({ icon, label, children }: { icon: IconName; label: string; childr
 
 /** Task detail on the SP3 Modal (centred, focus trap, Esc), fixed 672px wide, max 800px high. Header: status icon (status colour) + title
     (Title/H3) + priority marker, below "Status · ↻ schedule". Tabs Details / Verlauf. Details:
-    key-facts strip (no frame): Fällig as a Badge Chip in the status colour | Zuständig — name · group · location, and below what the receiver
-    did (only they can complete the task): "Erledigt am …" / "Noch nicht erledigt" · Details rows (Kategorie, Erstellt) · Beschreibung ·
+    key-facts strip (no frame): Fällig as a Badge Chip in the status colour | Zuständig — name, below it location · group, and below what the receiver
+    did (only they can complete the task): "Erledigt am …" (nothing while open) · Details rows (Kategorie, Erstellt) · Beschreibung ·
     then how it is completed: subtasks as separate cards, or one solution card "Erledigt per" in the same look (action · solution icon,
     green when done · handed-in files as SP3 Upload File Rows). Toolbar (SP3 Dialog): Schließen left, "3 von 24" + Vorherige / Nächste right. */
 export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggleSubtask, onAddSubtaskFiles, extraHistory = [], onPrev, onNext, position, onClose }: TaskDetailModalProps) {
@@ -148,15 +148,19 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
                   <span className="sp-text-medium text-sp-text">{task.person}</span>
                   {shift?.code && <ShiftPill code={shift.code} color={shift.color} />}
                   {task.receiver?.kind === "shift" && task.receiver.time && <span className="sp-text-small text-sp-text-label tabular-nums">{task.receiver.time}</span>}
-                  <span className="inline-flex flex-wrap items-center gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-1x)] sp-text-small text-sp-text-label">
-                    {group && <span className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name="user_group" color="var(--sp-icon)" />{group}</span>}
-                    {task.location && <span className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name="marker" color="var(--sp-icon)" />{task.location}</span>}
-                  </span>
                 </span>
-                {!task.library && (
-                  <span className="inline-flex items-center gap-[var(--sp-space-1x)] sp-text-small" style={{ color: task.status === "open" ? "var(--sp-text-label)" : fg }}>
+                {/* location · group on their own line below the receiver */}
+                {(task.location || group) && (
+                  <span className="inline-flex flex-wrap items-center gap-x-[var(--sp-space-3x)] gap-y-[var(--sp-space-1x)] sp-text-small text-sp-text-label">
+                    {task.location && <span className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name="marker" color="var(--sp-icon)" />{task.location}</span>}
+                    {group && <span className="inline-flex items-center gap-[var(--sp-space-1x)]"><Icon name="user_group" color="var(--sp-icon)" />{group}</span>}
+                  </span>
+                )}
+                {/* only when done: when it was completed (no "Noch nicht erledigt" line) */}
+                {!task.library && isDone && (
+                  <span className="inline-flex items-center gap-[var(--sp-space-1x)] sp-text-small" style={{ color: fg }}>
                     <Icon name={st.icon} color={fg} />
-                    {isDone ? `Erledigt am ${withWeekday(task.due.date)}, ${task.doneAt ?? task.due.time}` : "Noch nicht erledigt"}
+                    {`Erledigt am ${withWeekday(task.due.date)}, ${task.doneAt ?? task.due.time}`}
                   </span>
                 )}
               </span>
