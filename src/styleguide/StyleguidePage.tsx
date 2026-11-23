@@ -436,7 +436,7 @@ export default function StyleguidePage() {
             <div className="min-h-[380px]">
               <PageHeader
                 title="Dashboard"
-                actions={<><DateRangePicker value={range} onChange={setRange} /><Button icon="plus" label="New task" /></>}
+                actions={<><DateRangePicker value={range} onChange={(r) => r && setRange(r)} /><Button icon="plus" label="New task" /></>}
               />
             </div>
           </Specimen>

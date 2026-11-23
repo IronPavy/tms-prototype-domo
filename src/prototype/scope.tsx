@@ -1,27 +1,36 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { MultiSelectDropdown } from "@/design-system";
-import { DATE_PRESETS } from "@/design-system/utils/datePresets";
-import { type DateRange } from "@/design-system/utils/date";
+import { addDays, startOfDay, type DateRange } from "@/design-system/utils/date";
 import { ALL_SCOPE, ORG_GROUPS, TODAY, locationsInGroups, type Scope, type StatKey } from "./data";
 
 const ScopeContext = createContext<{ scope: Scope; setScope: (s: Scope) => void }>({ scope: ALL_SCOPE, setScope: () => {} });
 
-const THIS_WEEK = DATE_PRESETS.find((p) => p.id === "thisWeek")!;
-interface PeriodValue { range: DateRange; setRange: (r: DateRange) => void; pendingStatus: StatKey | null; setPendingStatus: (k: StatKey | null) => void }
-const PeriodContext = createContext<PeriodValue>({ range: THIS_WEEK.range(TODAY), setRange: () => {}, pendingStatus: null, setPendingStatus: () => {} });
+/** "Alle Tage" (no date filter) — the prototype generates its tasks per day, so it shows the last 30 days until today */
+const ALL_DAYS_RANGE: DateRange = { start: addDays(TODAY, -29), end: startOfDay(TODAY) };
+interface PeriodValue {
+  /** picked period · `null` = "Alle Tage" (default) */
+  period: DateRange | null;
+  setPeriod: (r: DateRange | null) => void;
+  /** the days the data is built for (`period`, or the "Alle Tage" range) */
+  range: DateRange;
+  pendingStatus: StatKey | null;
+  setPendingStatus: (k: StatKey | null) => void;
+}
+const PeriodContext = createContext<PeriodValue>({ period: null, setPeriod: () => {}, range: ALL_DAYS_RANGE, pendingStatus: null, setPendingStatus: () => {} });
 
-/** The selected period is shared by Dashboard and Tasks. `pendingStatus` carries a Dashboard KPI click to the Tasks page
+/** The selected period is shared by Dashboard and Tasks (default "Alle Tage"; future days can't be picked). `pendingStatus` carries a Dashboard KPI click to the Tasks page
     (which reads it once when it opens and pre-selects that status filter). */
 export const usePeriod = () => useContext(PeriodContext);
 
 /** One scope (Groups + Locations) for the whole prototype — stays when switching between Dashboard and Tasks. */
 export function ScopeProvider({ children }: { children: ReactNode }) {
   const [scope, setScope] = useState<Scope>(ALL_SCOPE);
-  const [range, setRange] = useState<DateRange>(() => THIS_WEEK.range(TODAY));
+  const [period, setPeriod] = useState<DateRange | null>(null);
+  const range = useMemo(() => period ?? ALL_DAYS_RANGE, [period]);
   const [pendingStatus, setPendingStatus] = useState<StatKey | null>(null);
   return (
     <ScopeContext.Provider value={{ scope, setScope }}>
-      <PeriodContext.Provider value={{ range, setRange, pendingStatus, setPendingStatus }}>{children}</PeriodContext.Provider>
+      <PeriodContext.Provider value={{ period, setPeriod, range, pendingStatus, setPendingStatus }}>{children}</PeriodContext.Provider>
     </ScopeContext.Provider>
   );
 }

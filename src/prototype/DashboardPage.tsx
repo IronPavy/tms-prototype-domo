@@ -20,7 +20,8 @@ const NOW_LABEL = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2
 /* Aufgaben Management › Dashboard.
    One filter (StatKey) is shared by the KPI cards, the donut legend and the attention list. */
 export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string) => void }) {
-  const { range, setRange, setPendingStatus } = usePeriod();
+  const { period, setPeriod, range, setPendingStatus } = usePeriod();
+  const periodLabel = period ? formatRange(period) : "Alle Tage";
   const [filter, setFilter] = useState<StatKey | null>(null);
   const toggle = (key: StatKey) => setFilter((f) => (f === key || key === "all" ? null : key));
 
@@ -51,7 +52,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
         actions={
           <>
             <ScopeFilters />
-            <DateRangePicker value={range} onChange={setRange} today={TODAY} />
+            <DateRangePicker value={period} onChange={setPeriod} today={TODAY} maxDate={TODAY} allowAll dateOnly />
           </>
         }
       />
@@ -95,7 +96,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
           </div>
         </Panel>
 
-        <Panel title="Completion" meta={formatRange(range)}>
+        <Panel title="Completion" meta={periodLabel}>
           <DonutChart
             segments={statuses.map((s) => ({ key: s.key, label: s.label, value: s.value, tone: s.tone }))}
             centerValue={`${all ? Math.round((done / all) * 100) : 0}%`}
@@ -134,7 +135,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (id: string
       <div className="grid gap-[var(--sp-space-4x)] grid-cols-1 xl:grid-cols-2">
         <Panel
           title="By team"
-          meta={`${formatRange(range)} · share done of what was due`}
+          meta={`${periodLabel} · share done of what was due`}
           actions={teamFilter && <Button variant="tertiary" icon="close" label="Clear filter" onClick={() => setFilter(null)} />}
         >
           <TeamBreakdown rows={teamsForRange(range, scope)} segments={TEAM_SEGMENTS} activeKey={teamFilter} onSegmentClick={(k) => toggle(k as StatKey)} />
