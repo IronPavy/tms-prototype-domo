@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FORMS } from "./formsData";
 import { Button, Modal, NewTaskModal, TaskDetailModal, Toast, type TaskAction, dueClock, emptyTask, scheduleLabel, type HistoryEntry, type NewTaskValues, type SubFile, type TaskGroup, type TaskRowData } from "@/design-system";
 import { addDays, sameDay, startOfDay } from "@/design-system/utils/date";
 import { ALL_SCOPE, TODAY, assignment, compareDue, recipientIds, recipientsForScope, resolveRecipient, type CreatedStat } from "./data";
@@ -7,12 +8,15 @@ import { useScope } from "./scope";
 export interface CreatedTask { task: TaskRowData; day: Date }
 export interface Draft { id: string; values: NewTaskValues; savedAt: string }
 
+const PUBLISHED_FORMS = FORMS.filter((f) => f.published).map((f) => ({ id: f.id, name: f.name }));
+
 interface TasksStore {
   created: CreatedTask[];
   /** created tasks as KPI input */
   createdStats: CreatedStat[];
   drafts: Draft[];
-  openNewTask: (draftId?: string) => void;
+  /** `preset` = values to start a new task with (e.g. a form as solution type) */
+  openNewTask: (draftId?: string, preset?: Partial<NewTaskValues>) => void;
   deleteDraft: (id: string) => void;
   /** open the task detail modal (centred); `list` = the tasks of the view it was opened from, in display order (Vorherige / Nächste) */
   openDetail: (task: TaskRowData, list?: TaskRowData[]) => void;
@@ -130,7 +134,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
     created,
     createdStats: created.map((c) => ({ status: c.task.status, location: c.task.location, day: c.day })),
     drafts,
-    openNewTask: (draftId) => setModal({ draftId }),
+    openNewTask: (draftId, preset) => setModal(preset ? { copy: { ...emptyTask(TODAY), ...preset } } : { draftId }),
     deleteDraft: (id) => setDrafts((d) => d.filter((x) => x.id !== id)),
     openDetail: (task, list = []) => { setEditing(false); setEditFromList(false); setDetailList(list); setDetail(task); },
     taskAction: (action, task) => {
@@ -238,6 +242,7 @@ export function TasksProvider({ children, onView }: { children: ReactNode; onVie
           onSend={send}
           onSaveDraft={saveDraft}
           onClose={() => setModal(null)}
+          forms={PUBLISHED_FORMS}
         />
       )}
       {cur && !editing && (
