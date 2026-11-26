@@ -3,6 +3,7 @@ import { StatusChip } from "../atoms/StatusChip";
 import { DueDateChip } from "../molecules/DueDateChip";
 import { IconHint } from "../molecules/IconHint";
 import { PriorityIndicator } from "../molecules/PriorityIndicator";
+import { RowSelectBox } from "../molecules/RowSelectBox";
 import { TASK_STATUS, type TaskRowData } from "../molecules/TaskRow";
 
 /** solution type → Sophis icon (top-right of the card) */
@@ -16,7 +17,10 @@ export interface TaskCardProps {
   task: TaskRowData;
   selected?: boolean;
   onSelect?: () => void;
-  onMenu?: () => void;
+  /** delete icon bottom-right (same as in the list); the host asks for confirmation */
+  onDelete?: () => void;
+  /** e.g. done tasks with proof — the delete icon is greyed out with this reason as tooltip */
+  deleteDisabledHint?: string;
 }
 
 /** Task card for the Cards view — structure of the first Task Card (reference project "TaskCard"), rebuilt on Sophi's Pet 3:
@@ -28,10 +32,10 @@ export interface TaskCardProps {
       icons in icon colour; wraps the timestamp onto a second line when narrow
     · solution type icon top-right (camera · attachment · check_circle, 16px brand/on/surface, Tooltip "Solution: …");
       tasks with subtasks show no icon (their solution is per subtask)
-    · "more_vert" menu button pinned bottom-right.
+    · delete icon pinned bottom-right — the list's RowSelectBox (trash): red on hover, Tooltip "Aufgabe löschen", greyed out with a reason.
     Card = SP3 "Card" (497:3227) Filled, Outlined, Interactive: surface/raised · 1px border (line) · radius 3x ·
     padding 4x / 5x · hover Shadow M + overlay · selected = selected background + brand/border/normal. */
-export function TaskCard({ task, selected, onSelect, onMenu }: TaskCardProps) {
+export function TaskCard({ task, selected, onSelect, onDelete, deleteDisabledHint }: TaskCardProps) {
   const st = TASK_STATUS[task.status];
 
   return (
@@ -90,15 +94,11 @@ export function TaskCard({ task, selected, onSelect, onMenu }: TaskCardProps) {
             <Icon name={SOLUTION[task.proof].icon} color="var(--sp-brand-on-surface)" />
           </IconHint>
         )}
-        <button
-          type="button"
-          aria-label="More actions"
-          title="More actions"
-          onClick={(e) => { e.stopPropagation(); onMenu?.(); }}
-          className="flex items-center justify-center size-6 p-0 border-0 bg-transparent rounded-[var(--sp-radius-2x)] cursor-pointer outline-none sp-interactive focus-visible:shadow-[var(--sp-focus-brand)]"
-        >
-          <Icon name="more_vert" color="var(--sp-icon)" />
-        </button>
+        {onDelete ? (
+          <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <RowSelectBox trash checked={false} onChange={onDelete} disabled={!!deleteDisabledHint} disabledHint={deleteDisabledHint} label={`Aufgabe „${task.title}“ löschen`} />
+          </span>
+        ) : <span aria-hidden />}
       </div>
     </article>
   );

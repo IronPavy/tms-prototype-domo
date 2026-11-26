@@ -1,7 +1,7 @@
 import { StatusChip } from "../atoms/StatusChip";
 import { EmptyTasks } from "../molecules/EmptyTasks";
 import { CalendarTaskItem } from "../molecules/CalendarTaskItem";
-import { addDays, diffDays, sameDay, startOfWeek } from "../utils/date";
+import { addDays, diffDays, sameDay } from "../utils/date";
 import type { TaskRowData } from "../molecules/TaskRow";
 import type { TaskGroup } from "./TaskList";
 
@@ -12,22 +12,25 @@ export interface TaskCalendarProps {
   onOpen?: (task: TaskRowData) => void;
 }
 
-const WD = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+const WD = { format: (d: Date) => new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(d).replace(".", "") };
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Calendar view — one row of 7 day columns (Mon–Sun) per week of the period. Days outside the period stay empty and faded.
+/** Calendar view — rows of 7 day columns; the last row ends on the period's last day (today at the latest, never the future). Days outside the period stay empty and faded.
     Column = SP3 "Card" (surface/raised, 1px border (line), radius 3x): header "Mon 21.09." (Medium + Standard) · task count
     (Small, text label), body = CalendarTaskItems sorted by time (gap 2x, padding 2x).
     Today: header on selected background, card border brand/border/normal. */
 export function TaskCalendar({ groups, today, onOpen }: TaskCalendarProps) {
-  const days = groups.filter((g) => g.date);
+  // no future: days after today are never shown
+  const days = groups.filter((g) => g.date && diffDays(g.date, today) >= 0);
   const noDue = groups.find((g) => g.kind === "nodue" && g.tasks.length);
   if (!days.length && !noDue) return null;
 
   const first = days[0]?.date ?? today, last = days[days.length - 1]?.date ?? today;
   const byDay = new Map(days.map((g) => [g.date!.toDateString(), g]));
+  // rows of 7 days that END on the last day of the period (at the latest today): today is always the last column
+  const end = diffDays(last, today) >= 0 ? last : today;
   const weeks: Date[][] = [];
-  for (let w = startOfWeek(first); diffDays(w, last) >= 0; w = addDays(w, 7)) weeks.push(Array.from({ length: 7 }, (_, i) => addDays(w, i)));
+  for (let e = end; diffDays(first, e) >= 0; e = addDays(e, -7)) weeks.unshift(Array.from({ length: 7 }, (_, i) => addDays(e, i - 6)));
   const empty = days.every((g) => !g.tasks.length);
 
   return (

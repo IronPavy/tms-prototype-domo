@@ -10,11 +10,15 @@ export interface TaskCardGridProps {
   /** a card was clicked */
   onOpen?: (task: TaskRowData) => void;
   emptyText?: string;
+  /** delete icon on each card (as in the list) */
+  onDelete?: (task: TaskRowData) => void;
+  /** reason why a task can't be deleted (greyed-out icon), or undefined when it can */
+  deleteDisabledHint?: (task: TaskRowData) => string | undefined;
 }
 
 /** Cards view — the same day groups as TaskList (header: label · TODAY badge · count), cards in a responsive grid
     (max 4 per row, min 300px per card, gap 4x). One card can be selected at a time. */
-export function TaskCardGrid({ groups, onOpen, emptyText = "No tasks match the current filters." }: TaskCardGridProps) {
+export function TaskCardGrid({ groups, onOpen, emptyText = "No tasks match the current filters.", onDelete, deleteDisabledHint }: TaskCardGridProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const visible = groups.filter((g) => g.tasks.length);
   if (!visible.length) {
@@ -41,7 +45,7 @@ export function TaskCardGrid({ groups, onOpen, emptyText = "No tasks match the c
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, max(300px, calc((100% - 3 * var(--sp-space-4x)) / 4))), 1fr))" }}
           >
             {g.tasks.map((t) => (
-              <TaskCard key={t.id} task={t} selected={selected === t.id} onSelect={() => { setSelected(t.id); onOpen?.(t); }} />
+              <TaskCard key={t.id} task={t} selected={selected === t.id} onSelect={() => { setSelected(t.id); onOpen?.(t); }} onDelete={onDelete && (() => onDelete(t))} deleteDisabledHint={deleteDisabledHint?.(t)} />
             ))}
           </div>
         </section>

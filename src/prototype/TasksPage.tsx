@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, RowSelectBox, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskCalendar, TaskCardGrid, TaskListByDay,
+  Button, DateRangePicker, Icon, EmptyTasks, FilterPill, LibraryFilter, LibraryList, PageHeader, RowSelectBox, ScrollTopButton, SearchField, SegmentedControl, TabBar, TaskListByDay,
   type LibraryFilterValue, type TaskRowData,
 } from "@/design-system";
 import { TODAY, dueDateKey, dueSortKey, inScope, statsForRange, taskGroupsForRange, type StatKey } from "./data";
@@ -22,11 +22,11 @@ const DUE_OPTIONS = [
 /** tasks per page of the endless list (the live app loads 15 at a time) */
 const PAGE = 15;
 
-const VIEWS = [
-  { id: "list", label: "Liste", icon: "unordered_list" as const },
+const VIEWS: { id: string; label: string; icon: "unordered_list" | "grid" | "cal"; disabled?: boolean; hint?: string }[] = [
+  { id: "list", label: "Liste", icon: "unordered_list" },
   // Cards and Calendar are introduced later: greyed out, tooltip says so
-  { id: "cards", label: "Karten", icon: "grid" as const, disabled: true, hint: "Demnächst verfügbar" },
-  { id: "calendar", label: "Kalender", icon: "cal" as const, disabled: true, hint: "Demnächst verfügbar" },
+  { id: "cards", label: "Karten", icon: "grid", disabled: true, hint: "Demnächst verfügbar" },
+  { id: "calendar", label: "Kalender", icon: "cal", disabled: true, hint: "Demnächst verfügbar" },
 ];
 
 /* Aufgaben Management › Tasks — header, tabs and the filter / toolbar rows.
@@ -50,7 +50,10 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const listTab = tab === "status" || tab === "action"; // Status and Handlungsbedarf share the list
   const isAction = tab === "action";
   const views = listTab ? VIEWS : VIEWS.filter((v) => v.id !== "calendar");
-  const shownView = views.some((v) => v.id === view && !v.disabled) ? view : "list";
+  // Status tab: all three views can be chosen (tooltips "Liste" / "Karten" / "Kalender"); elsewhere Karten / Kalender stay greyed out
+  const filterRowViews: typeof VIEWS = tab === "status" ? views.map(({ hint: _hint, disabled: _disabled, ...v }) => v) : views;
+  const tabViews = tab === "library" ? views : filterRowViews;
+  const shownView = tabViews.some((v) => v.id === view && !v.disabled) ? view : "list";
 
   // Aufgaben filters by group only (no Location dropdown here), so a location picked on the Dashboard does not apply
   const fullScope = useScope();
@@ -103,6 +106,8 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
   const noDueTasks = groups.find((g) => g.kind === "nodue")?.tasks ?? [];
   const listDays = dayGroups.map((g) => ({ id: g.id, date: g.date!, label: g.label, tasks: [...g.tasks].sort((a, b) => dueSortKey(b).localeCompare(dueSortKey(a)) || a.title.localeCompare(b.title, "de")) }));
   const filtered = !!q || type !== "all" || dueFilter !== "all";
+  // any filter differs from the start: search, type, due, or not all status pills selected
+  const filtersActive = filtered || (!isAction && active.size < statuses.length);
   // Vorherige / Nächste in the detail walk the tasks in the order the current view shows them
   const listOrder = [...(!isAction && dueFilter !== "with" ? noDueTasks : []), ...[...listDays].reverse().flatMap((d) => d.tasks)];
   const groupOrder = groups.flatMap((g) => g.tasks);
@@ -257,7 +262,7 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
           {/* view switch at the right end of the filter row (Status, Handlungsbedarf, Entwürfe) */}
           {tab !== "library" && (
             <div className="ml-auto">
-              <SegmentedControl label="Ansicht" iconOnly options={views} value={shownView} onChange={setView} />
+              <SegmentedControl label="Ansicht" iconOnly options={filterRowViews} value={shownView} onChange={setView} />
             </div>
           )}
         </div>
@@ -334,10 +339,16 @@ export default function TasksPage(_props: { onNavigate?: (id: string) => void })
             </div>
           )}
         />
-      ) : listTab && shownView === "cards" ? (
-        <TaskCardGrid groups={groups} onOpen={(t) => openDetail(t, groupOrder)} />
-      ) : listTab && shownView === "calendar" ? (
-        <TaskCalendar groups={groups} today={TODAY} onOpen={(t) => openDetail(t, groupOrder)} />
+      ) : listTab && (shownView === "cards" || shownView === "calendar") ? (
+        /* Karten / Kalender: only the switch is shown for now — the views come with their own user stories.
+           Two empty states: on arrival (no filter active) · with active filters / search → "Zurücksetzen" resets them */
+        <div className="flex justify-center py-[var(--sp-space-6x)]">
+          <EmptyTasks
+            title={shownView === "cards" ? "Kartenansicht" : "Kalenderansicht"}
+            text={!filtersActive ? "Keine Aufgaben gefunden." : q ? `Keine Aufgaben für „${shownQuery}“ gefunden.` : "Keine Aufgaben für die gewählten Filter gefunden."}
+            action={filtersActive ? <Button variant="primary" label="Zurücksetzen" onClick={resetAll} /> : undefined}
+          />
+        </div>
       ) : tab === "drafts" && !drafts.length ? (
         <div className="flex justify-center py-[var(--sp-space-6x)]"><EmptyTasks /></div>
       ) : tab === "drafts" && shownView === "cards" ? (
