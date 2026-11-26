@@ -85,11 +85,17 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
   const history: HistoryEntry[] = [
     { id: "created", title: `Erstellt von ${task.createdBy ?? "—"}`, meta: task.createdAt, state: "done" },
     ...extraHistory,
-    ...(task.library ? [] : [isDone
-      ? { id: "state", title: task.doneBy ? `Erledigt von ${task.doneBy}` : "Erledigt", meta: `${task.due.date}, ${task.doneAt ?? task.due.time}`, state: "done" as const }
-      : task.status === "overdue"
-        ? { id: "state", title: "Noch nicht erledigt", meta: `Überfällig seit ${task.due.date}, ${task.due.time}`, state: "danger" as const }
-        : { id: "state", title: "Noch nicht erledigt", meta: task.noDue ? undefined : `Fällig ${task.due.date}, ${task.due.time}`, state: "pending" as const }]),
+    ...((): HistoryEntry[] => {
+      if (task.library) return [];
+      if (isDone) return [{ id: "state", title: task.doneBy ? `Erledigt von ${task.doneBy}` : "Erledigt", meta: `${task.due.date}, ${task.doneAt ?? task.due.time}`, state: "done" }];
+      // missed: overdue first, then closed by the system when the next instance was generated (logged with its timestamp)
+      if (task.status === "missed") return [
+        { id: "overdue", title: "Nicht erledigt", meta: `Überfällig seit ${task.due.date}, ${task.due.time}`, state: "danger" },
+        { id: "state", title: "Verpasst – automatisch geschlossen (System)", meta: `${task.missedAt ?? ""} · nächste Wiederholung erstellt`, state: "pending" },
+      ];
+      if (task.status === "overdue") return [{ id: "state", title: "Noch nicht erledigt", meta: `Überfällig seit ${task.due.date}, ${task.due.time}`, state: "danger" }];
+      return [{ id: "state", title: "Noch nicht erledigt", meta: task.noDue ? undefined : `Fällig ${task.due.date}, ${task.due.time}`, state: "pending" }];
+    })(),
   ];
 
   const shiftOnly = !!task.shifts?.length && task.person === task.shifts[0].name;
@@ -190,7 +196,7 @@ export function TaskDetailModal({ task, subtaskDone, subtaskFiles = {}, onToggle
               items={subs}
               done={subtaskDone}
               files={subFiles}
-              readOnly={task.library}
+              readOnly={task.library || task.status === "missed"}
               onToggle={onToggleSubtask}
               onAddFiles={onAddSubtaskFiles}
               onOpenFile={(id, i) => setViewer({ files: subFiles[id], start: i })}
