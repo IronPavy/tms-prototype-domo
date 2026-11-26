@@ -68,7 +68,7 @@ export const NAV_LABELS: Record<string, string> = Object.fromEntries(
 
 /* ─── Dashboard KPIs ─────────────────────────────────────────── */
 
-export type StatKey = "all" | "done" | "open" | "overdue";
+export type StatKey = "all" | "done" | "missed" | "open" | "overdue";
 
 interface StatDef { key: StatKey; label: string; icon: IconName; tone: StatTone; value: number; people: number }
 
@@ -77,6 +77,8 @@ const STATUSES: StatDef[] = [
   { key: "done",    label: "Erledigt",             icon: "check",   tone: "success", value: 13, people: 8 },
   { key: "open",    label: "Offen",                 icon: "folder",  tone: "info",    value: 42, people: 10 },
   { key: "overdue", label: "Überfällig",            icon: "warning", tone: "error",   value: 6,  people: 5 },
+  // recurring instances closed by the system (next instance generated while still overdue) — never counted as done
+  { key: "missed",  label: "Verpasst",             icon: "close_circle", tone: "warning", value: 4, people: 3 },
 ];
 
 /** "All tasks" = sum of the status cards; people = everyone involved (overlaps, so not a plain sum). */
@@ -412,11 +414,17 @@ const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return h 
 const plus = (t: string, n: number) => { const v = mins(t) + n; return `${pad(Math.floor(v / 60) % 24)}:${pad(v % 60)}`; };
 
 /** status of one occurrence: past days done, today by the clock, future open */
-function occurrence(t: TaskTemplate, d: Date, seed: number): Pick<TaskRowData, "status" | "doneAt"> {
+function occurrence(t: TaskTemplate, d: Date, seed: number): Pick<TaskRowData, "status" | "doneAt" | "missedAt"> {
   const offset = diffDays(TODAY, d);
   const now = TODAY.getHours() * 60 + TODAY.getMinutes();
   if (offset > 0 || (offset === 0 && mins(t.time) > now)) return { status: "open" };
-  if (offset < 0 && !t.high && (seed * 3) % 11 === 0) return { status: "overdue" }; // missed on an earlier day, still open
+  if (offset < 0 && !t.high && (seed * 3) % 11 === 0) {
+    // not done on an earlier day: overdue until the next instance of the series is generated (at the start of its day),
+    // then the system closes it as "missed" (daily → next day, weekly → 7 days later). Only recurring tasks get here.
+    const next = addDays(startOfDay(d), t.weekday !== undefined ? 7 : 1);
+    if (diffDays(next, TODAY) >= 0) return { status: "missed", missedAt: `${ddmm(next)}${String(next.getFullYear()).slice(2)}, 00:00` };
+    return { status: "overdue" };
+  }
   if (offset === 0 && !t.high && seed % 2 === 0) return { status: "overdue" }; // missed today
   if (offset === 0 && seed % 3 === 0) return { status: "open" }; // late: time passed, day not over
   const late = (seed * 7) % 13;

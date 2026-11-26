@@ -10,7 +10,8 @@ import { IconHint } from "./IconHint";
 import type { Tone } from "../utils/tones";
 import { ShiftPill, type ShiftColor } from "./ShiftPill";
 
-export type TaskStatus = "done" | "open" | "overdue";
+/** missed = a recurring instance that was overdue when its next instance was generated — closed like done, but not completed */
+export type TaskStatus = "done" | "missed" | "open" | "overdue";
 /** solution type — how the task is completed */
 export type TaskProof = "check" | "photo" | "attachment";
 
@@ -64,6 +65,8 @@ export interface TaskRowData {
   noDue?: boolean;
   /** completion time for done tasks — "done 06:37" under the chip */
   doneAt?: string;
+  /** missed: when the system closed it ("27.11.26, 00:00") — the next instance was generated then */
+  missedAt?: string;
   proof: TaskProof;
   /** Bibliothek entry (template): the detail shows no status / due date */
   library?: boolean;
@@ -80,6 +83,7 @@ export interface TaskRowData {
 /** same labels / icons / tones as the Dashboard KPI cards */
 export const TASK_STATUS: Record<TaskStatus, { label: string; icon: IconName; tone: Tone }> = {
   done: { label: "Erledigt", icon: "check", tone: "success" },
+  missed: { label: "Verpasst", icon: "close_circle", tone: "warning" },
   open: { label: "Offen", icon: "folder", tone: "info" },
   overdue: { label: "Überfällig", icon: "warning", tone: "error" },
 };
@@ -94,7 +98,7 @@ export const SOLUTION: Record<TaskProof, { label: string; icon: IconName }> = {
 /** grid shared by the rows (and any header) — task · assignee · due · subtasks · solution */
 export const TASK_GRID = "grid grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_172px_56px_minmax(8px,32px)_1px_32px] items-center gap-x-[var(--sp-space-4x)]";
 
-export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", open: "folder", overdue: "warning" };
+export const STATUS_ICON: Record<TaskStatus, IconName> = { done: "check", missed: "close_circle", open: "folder", overdue: "warning" };
 
 /** The due-date pill of a task: status colour + status icon (check · folder · warning) — open = blue, overdue = red, done = green; text is never red;
     tooltip with the status in words (done: "Erledigt am … von …"). Used by the list row and the task detail. */
